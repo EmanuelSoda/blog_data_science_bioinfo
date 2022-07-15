@@ -1,0 +1,14 @@
+---
+title: "Hello World"
+author: "Emanuel Soda"
+date: 2022-06-05
+categories: ["R"]
+tags: ["R Markdown", "plot", "regression"]
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE)
+```
+
+# Presentation 
+Hi everyone, I'm Emanuel a junior bioinformatician passionate about data science. In this blog we are going to talk about bioinformatics and data science. 
