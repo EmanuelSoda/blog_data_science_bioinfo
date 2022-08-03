@@ -48,26 +48,34 @@ frac<-na.omit(frac)
 # Plot
 ```{r}
 ggplot(frac, aes(x = vehicle, y = speed)) +
-    geom_point(aes(colour = ground), 
-               position = position_jitterdodge(jitter.width = 0.1,
-                                               dodge.width= 0.5), 
-               alpha=0.5) +
-    ggdist::stat_halfeye(aes(fill = stat(y)), 
-                         adjust = .5, 
-                         width = .6,
-                         show.legend = FALSE, 
-                         .width = 0, 
-                         justification = -.5, 
-                         point_colour = NA) + 
-    coord_flip() + 
-    ylim(0, 50) +
-    labs(color = "Ground", x = NULL, y = "Speed") + 
-    scale_fill_gradient(low = 'white', high = 'black') + 
-    scale_colour_manual(values = 
-                    c("royalblue", "#FAB95B", '#827397', "darkgreen", 
-                      "#AF6B58"),
-                    limits = c("wet"  ,"sandy", "rock", "hill", "flat")) + 
-    theme_light() + 
-    guides(colour = guide_legend(override.aes = list(size=5)))
+  geom_point(aes(colour = ground),
+    position = position_jitterdodge(
+      jitter.width = 0.1,
+      dodge.width = 0.5
+    ),
+    alpha = 0.5
+  ) +
+  ggdist::stat_halfeye(aes(fill = stat(y)),
+    adjust = .5,
+    width = .6,
+    show.legend = FALSE,
+    .width = 0,
+    justification = -.5,
+    point_colour = NA
+  ) +
+  coord_flip() +
+  ylim(0, 50) +
+  labs(color = "Ground", x = NULL, y = "Speed") +
+  scale_fill_gradient(low = "white", high = "black") +
+  scale_colour_manual(
+    values =
+      c(
+        "royalblue", "#FAB95B", "#827397", "darkgreen",
+        "#AF6B58"
+      ),
+    limits = c("wet", "sandy", "rock", "hill", "flat")
+  ) +
+  theme_light() +
+  guides(colour = guide_legend(override.aes = list(size = 5)))
 ```
 
