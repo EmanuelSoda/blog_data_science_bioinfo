@@ -21,7 +21,7 @@ tags: []
 <li>skateboard</li>
 <li>rollers</li>
 </ul>
-<p>on different grounds such as:</p>
+<p>Their speed is computed on 5 different grounds:</p>
 <ul>
 <li>sandy</li>
 <li>flat</li>
@@ -29,7 +29,7 @@ tags: []
 <li>wet</li>
 <li>rock</li>
 </ul>
-<p>The aim of the analysis is to observe the distribution of the speed of each vehicle to assess which is faster.</p>
+<p>The aim of the analysis is to observe the distribution of the speed of each vehicle to assess which one is faster.</p>
 <pre class="r"><code>frac&lt;-readxl::read_excel(&quot;/Users/MariaRosariaNucera/Desktop/blog_data_science_bioinfo/Data/speed.xlsx&quot;)</code></pre>
 </div>
 <div id="pivot-dataframe" class="section level1">
@@ -46,21 +46,27 @@ tags: []
 </div>
 <div id="plot" class="section level1">
 <h1>Plot</h1>
-<pre class="r"><code>ggplot(frac, aes(x = vehicle, y = speed))+
-    geom_point(aes( colour=ground),
-      position=position_jitterdodge( jitter.width = 0.1,
-      dodge.width = 0.5), alpha=0.5)+ 
-    ggdist::stat_halfeye( 
-      aes(fill = stat(y) ) ,
-      adjust = .5, width = .6,show.legend = FALSE,
-      .width = 0, justification = -.5,
-      point_colour = NA)+ 
-      coord_flip() + ylim(0, 50)+
-      labs(color=&quot;Ground&quot;,x=&quot; &quot;, y= &quot;Speed&quot;)+
-      scale_fill_gradient(low = &#39;white&#39;,high=&#39;black&#39;)+
-      scale_colour_manual(values=c(&quot;royalblue&quot;,&quot;#FAB95B&quot;,&#39;#827397&#39;,
-     &quot;darkgreen&quot;,&quot;#AF6B58&quot;) ,limits=c(&quot;wet&quot;  ,&quot;sandy&quot;, &quot;rock&quot;, 
-     &quot;hill&quot;     ,&quot;flat&quot;))+theme_light()+ 
-      guides(colour =   guide_legend(override.aes = list(size=5)))</code></pre>
+<pre class="r"><code>ggplot(frac, aes(x = vehicle, y = speed)) +
+    geom_point(aes(colour = ground), 
+               position = position_jitterdodge(jitter.width = 0.1,
+                                               dodge.width= 0.5), 
+               alpha=0.5) +
+    ggdist::stat_halfeye(aes(fill = stat(y)), 
+                         adjust = .5, 
+                         width = .6,
+                         show.legend = FALSE, 
+                         .width = 0, 
+                         justification = -.5, 
+                         point_colour = NA) + 
+    coord_flip() + 
+    ylim(0, 50) +
+    labs(color = &quot;Ground&quot;, x = NULL, y = &quot;Speed&quot;) + 
+    scale_fill_gradient(low = &#39;white&#39;, high = &#39;black&#39;) + 
+    scale_colour_manual(values = 
+                    c(&quot;royalblue&quot;, &quot;#FAB95B&quot;, &#39;#827397&#39;, &quot;darkgreen&quot;, 
+                      &quot;#AF6B58&quot;),
+                    limits = c(&quot;wet&quot;  ,&quot;sandy&quot;, &quot;rock&quot;, &quot;hill&quot;, &quot;flat&quot;)) + 
+    theme_light() + 
+    guides(colour = guide_legend(override.aes = list(size=5)))</code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
 </div>
