@@ -19,7 +19,7 @@ The dataset contains data about the speed of 3 different vehicles:
 - skateboard
 - rollers 
 
-on different grounds such as:
+Their speed is computed on 5 different grounds:
 
 - sandy
 - flat
