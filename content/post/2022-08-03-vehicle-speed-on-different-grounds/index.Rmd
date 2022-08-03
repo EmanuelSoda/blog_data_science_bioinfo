@@ -12,7 +12,23 @@ library("tidyverse")
 ```
 
 # Import data
-```{r}
+
+The dataset contains data about the speed of 3 different vehicles:
+
+- bike
+- skateboard
+- rollers 
+
+on different grounds such as:
+
+- sandy
+- flat
+- hill
+- wet 
+- rock
+
+The aim of the analysis is to observe the distribution of the speed of each vehicle to assess which is faster.
+```{r,message=FALSE}
 frac<-readxl::read_excel("/Users/MariaRosariaNucera/Desktop/blog_data_science_bioinfo/Data/speed.xlsx")
 ```
 
