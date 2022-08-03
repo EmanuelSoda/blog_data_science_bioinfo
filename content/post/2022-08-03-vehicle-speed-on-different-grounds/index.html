@@ -9,45 +9,53 @@ tags: []
 
 
 
+<div id="import-libraries" class="section level1">
+<h1>Import libraries</h1>
 <pre class="r"><code>library(&quot;tidyverse&quot;)</code></pre>
 <pre><code>## -- Attaching packages --------------------------------------- tidyverse 1.3.1 --</code></pre>
 <pre><code>## v ggplot2 3.3.6     v purrr   0.3.4
 ## v tibble  3.1.7     v dplyr   1.0.9
 ## v tidyr   1.2.0     v stringr 1.4.0
 ## v readr   2.1.2     v forcats 0.5.1</code></pre>
-<pre><code>## Warning: il pacchetto &#39;ggplot2&#39; è stato creato con R versione 4.1.3</code></pre>
-<pre><code>## Warning: il pacchetto &#39;tibble&#39; è stato creato con R versione 4.1.3</code></pre>
-<pre><code>## Warning: il pacchetto &#39;tidyr&#39; è stato creato con R versione 4.1.3</code></pre>
-<pre><code>## Warning: il pacchetto &#39;readr&#39; è stato creato con R versione 4.1.3</code></pre>
-<pre><code>## Warning: il pacchetto &#39;dplyr&#39; è stato creato con R versione 4.1.3</code></pre>
 <pre><code>## -- Conflicts ------------------------------------------ tidyverse_conflicts() --
 ## x dplyr::filter() masks stats::filter()
 ## x dplyr::lag()    masks stats::lag()</code></pre>
+</div>
+<div id="import-data" class="section level1">
+<h1>Import data</h1>
 <pre class="r"><code>frac&lt;-readxl::read_excel(&quot;/Users/MariaRosariaNucera/Desktop/blog_data_science_bioinfo/Data/speed.xlsx&quot;)</code></pre>
 <pre><code>## New names:
 ## * `` -&gt; `...1`</code></pre>
+</div>
+<div id="pivot-dataframe" class="section level1">
+<h1>Pivot dataframe</h1>
 <pre class="r"><code>frac&lt;-frac %&gt;%
     pivot_longer(cols = c(&#39;Bike&#39;, &#39;Skateboard&#39;,&#39;Rollers&#39;), 
                  names_to = &quot;vehicle&quot;, 
                  values_to = &quot;speed&quot;)%&gt;%
-    mutate(vehicle=fct_reorder(vehicle,speed))
-
-frac&lt;-na.omit(frac)
-
-ggplot(frac, aes(x = vehicle, y = speed))+
+    mutate(vehicle=fct_reorder(vehicle,speed))</code></pre>
+</div>
+<div id="remove-null-values" class="section level1">
+<h1>Remove null values</h1>
+<pre class="r"><code>frac&lt;-na.omit(frac)</code></pre>
+</div>
+<div id="plot" class="section level1">
+<h1>Plot</h1>
+<pre class="r"><code>ggplot(frac, aes(x = vehicle, y = speed))+
     geom_point(aes( colour=ground),
-               position=position_jitterdodge( jitter.width = 0.1,
-                                              dodge.width = 0.5), alpha=0.5)+ 
+      position=position_jitterdodge( jitter.width = 0.1,
+      dodge.width = 0.5), alpha=0.5)+ 
     ggdist::stat_halfeye( 
-        aes(fill = stat(y) ) ,
-        adjust = .5, width = .6,show.legend = FALSE,
-        .width = 0, justification = -.5,
-        point_colour = NA)+ 
-    coord_flip() + ylim(0, 50)+
-    labs(color=&quot;Ground&quot;,x=&quot; &quot;, y= &quot;Speed&quot;)+
-    scale_fill_gradient(low = &#39;white&#39;,high=&#39;black&#39;)+
-    scale_colour_manual(values=c(&quot;royalblue&quot;,&quot;#FAB95B&quot;,&#39;#827397&#39;,
-                                 &quot;darkgreen&quot;,&quot;#AF6B58&quot;)
-                        ,limits=c(&quot;wet&quot;  ,&quot;sandy&quot;, &quot;rock&quot;, &quot;hill&quot;  ,&quot;flat&quot;))+
-    theme_light()+ guides(colour = guide_legend(override.aes = list(size=5)))</code></pre>
-<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-1-1.png" width="672" /></p>
+      aes(fill = stat(y) ) ,
+      adjust = .5, width = .6,show.legend = FALSE,
+      .width = 0, justification = -.5,
+      point_colour = NA)+ 
+      coord_flip() + ylim(0, 50)+
+      labs(color=&quot;Ground&quot;,x=&quot; &quot;, y= &quot;Speed&quot;)+
+      scale_fill_gradient(low = &#39;white&#39;,high=&#39;black&#39;)+
+      scale_colour_manual(values=c(&quot;royalblue&quot;,&quot;#FAB95B&quot;,&#39;#827397&#39;,
+     &quot;darkgreen&quot;,&quot;#AF6B58&quot;) ,limits=c(&quot;wet&quot;  ,&quot;sandy&quot;, &quot;rock&quot;, 
+     &quot;hill&quot;     ,&quot;flat&quot;))+theme_light()+ 
+      guides(colour =   guide_legend(override.aes = list(size=5)))</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+</div>
