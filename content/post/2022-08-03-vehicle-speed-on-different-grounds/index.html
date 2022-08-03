@@ -47,26 +47,34 @@ tags: []
 <div id="plot" class="section level1">
 <h1>Plot</h1>
 <pre class="r"><code>ggplot(frac, aes(x = vehicle, y = speed)) +
-    geom_point(aes(colour = ground), 
-               position = position_jitterdodge(jitter.width = 0.1,
-                                               dodge.width= 0.5), 
-               alpha=0.5) +
-    ggdist::stat_halfeye(aes(fill = stat(y)), 
-                         adjust = .5, 
-                         width = .6,
-                         show.legend = FALSE, 
-                         .width = 0, 
-                         justification = -.5, 
-                         point_colour = NA) + 
-    coord_flip() + 
-    ylim(0, 50) +
-    labs(color = &quot;Ground&quot;, x = NULL, y = &quot;Speed&quot;) + 
-    scale_fill_gradient(low = &#39;white&#39;, high = &#39;black&#39;) + 
-    scale_colour_manual(values = 
-                    c(&quot;royalblue&quot;, &quot;#FAB95B&quot;, &#39;#827397&#39;, &quot;darkgreen&quot;, 
-                      &quot;#AF6B58&quot;),
-                    limits = c(&quot;wet&quot;  ,&quot;sandy&quot;, &quot;rock&quot;, &quot;hill&quot;, &quot;flat&quot;)) + 
-    theme_light() + 
-    guides(colour = guide_legend(override.aes = list(size=5)))</code></pre>
+  geom_point(aes(colour = ground),
+    position = position_jitterdodge(
+      jitter.width = 0.1,
+      dodge.width = 0.5
+    ),
+    alpha = 0.5
+  ) +
+  ggdist::stat_halfeye(aes(fill = stat(y)),
+    adjust = .5,
+    width = .6,
+    show.legend = FALSE,
+    .width = 0,
+    justification = -.5,
+    point_colour = NA
+  ) +
+  coord_flip() +
+  ylim(0, 50) +
+  labs(color = &quot;Ground&quot;, x = NULL, y = &quot;Speed&quot;) +
+  scale_fill_gradient(low = &quot;white&quot;, high = &quot;black&quot;) +
+  scale_colour_manual(
+    values =
+      c(
+        &quot;royalblue&quot;, &quot;#FAB95B&quot;, &quot;#827397&quot;, &quot;darkgreen&quot;,
+        &quot;#AF6B58&quot;
+      ),
+    limits = c(&quot;wet&quot;, &quot;sandy&quot;, &quot;rock&quot;, &quot;hill&quot;, &quot;flat&quot;)
+  ) +
+  theme_light() +
+  guides(colour = guide_legend(override.aes = list(size = 5)))</code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
 </div>
