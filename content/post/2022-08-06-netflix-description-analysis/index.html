@@ -1,0 +1,190 @@
+---
+title: Netflix description analysis
+author: Emanuel Michele Soda
+date: '2022-08-06'
+slug: netflix-description-analysis
+categories: []
+tags:
+  - netflix
+  - analysis
+editor_options: 
+  chunk_output_type: console
+---
+
+
+
+<div id="introduction" class="section level1">
+<h1>Introduction</h1>
+<div id="npl-a-super-brief-introduction" class="section level2">
+<h2>NPL a super brief introduction</h2>
+<p>In this post we are going to have a look to what is called <strong>Natural Language Processing</strong> also known as <strong>NLP</strong>. First of all let’s define what is NLP. According to <a href="https://en.wikipedia.org/wiki/Natural_language_processing">Wikipedia</a>:</p>
+<blockquote>
+<p><em><strong>Natural language processing</strong> (<strong>NLP</strong>) is a subfield of <a href="https://en.wikipedia.org/wiki/Linguistics" title="Linguistics">linguistics</a>, <a href="https://en.wikipedia.org/wiki/Computer_science" title="Computer science">computer science</a>, and <a href="https://en.wikipedia.org/wiki/Artificial_intelligence" title="Artificial intelligence">artificial intelligence</a> concerned with the interactions between computers and human language, in particular how to program computers to process and analyze large amounts of <a href="https://en.wikipedia.org/wiki/Natural_language" title="Natural language">natural language</a> data. The goal is a computer capable of “understanding” the contents of documents, including the <a href="https://en.wikipedia.org/wiki/Context_(language_use)" title="Context (language use)">contextual</a> nuances of the language within them. The technology can then accurately extract information and insights contained in the documents as well as categorize and organize the documents themselves.</em></p>
+</blockquote>
+<p>In brief the NPL is a set of tools able to extract information from text data.</p>
+<p>For this very introductory tutorial we will analyse the description of <strong>Netflix</strong> movies and trying to predict the film category using the description. In order to perform this task we will use most above all those packages:</p>
+<ul>
+<li><p><code>tidyverse</code> for the data manipulation</p></li>
+<li><p><code>tidymodels</code> for the modelling</p></li>
+<li><p><code>tidytext</code> for the analysis of the text data</p></li>
+<li><p><code>textrecipes</code> for additional recipes step for text data</p></li>
+</ul>
+</div>
+<div id="importing-the-pacakges" class="section level2">
+<h2>Importing the pacakges</h2>
+<pre class="r"><code>library(tidyverse)
+library(tidymodels)
+library(tidytext)
+library(textrecipes)
+library(hrbrthemes)
+theme_set(theme_light(base_size = 20))</code></pre>
+</div>
+<div id="read-data" class="section level2">
+<h2>Read data</h2>
+<p>The data is in <em>.csv</em> in order to read it we can use the <code>readr::read_csv()</code> function. Once the data are read and saved in the <code>netflix_titles</code> variable.</p>
+<pre class="r"><code>netflix_titles &lt;- readr::read_csv(path)</code></pre>
+<pre><code>## Rows: 7787 Columns: 12
+## ── Column specification ────────────────────────────────────────────────────────
+## Delimiter: &quot;,&quot;
+## chr (11): show_id, type, title, director, cast, country, date_added, rating,...
+## dbl  (1): release_year
+## 
+## ℹ Use `spec()` to retrieve the full column specification for this data.
+## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+<p>In order to have a look to the data we can use a very handy function from the <code>dplyr</code> which is <code>glimpse()</code>.</p>
+<pre class="r"><code>dplyr::glimpse(netflix_titles)</code></pre>
+<pre><code>## Rows: 7,787
+## Columns: 12
+## $ show_id      &lt;chr&gt; &quot;s1&quot;, &quot;s2&quot;, &quot;s3&quot;, &quot;s4&quot;, &quot;s5&quot;, &quot;s6&quot;, &quot;s7&quot;, &quot;s8&quot;, &quot;s9&quot;, &quot;s1…
+## $ type         &lt;chr&gt; &quot;TV Show&quot;, &quot;Movie&quot;, &quot;Movie&quot;, &quot;Movie&quot;, &quot;Movie&quot;, &quot;TV Show&quot;,…
+## $ title        &lt;chr&gt; &quot;3%&quot;, &quot;7:19&quot;, &quot;23:59&quot;, &quot;9&quot;, &quot;21&quot;, &quot;46&quot;, &quot;122&quot;, &quot;187&quot;, &quot;70…
+## $ director     &lt;chr&gt; NA, &quot;Jorge Michel Grau&quot;, &quot;Gilbert Chan&quot;, &quot;Shane Acker&quot;, &quot;…
+## $ cast         &lt;chr&gt; &quot;João Miguel, Bianca Comparato, Michel Gomes, Rodolfo Val…
+## $ country      &lt;chr&gt; &quot;Brazil&quot;, &quot;Mexico&quot;, &quot;Singapore&quot;, &quot;United States&quot;, &quot;United…
+## $ date_added   &lt;chr&gt; &quot;August 14, 2020&quot;, &quot;December 23, 2016&quot;, &quot;December 20, 201…
+## $ release_year &lt;dbl&gt; 2020, 2016, 2011, 2009, 2008, 2016, 2019, 1997, 2019, 200…
+## $ rating       &lt;chr&gt; &quot;TV-MA&quot;, &quot;TV-MA&quot;, &quot;R&quot;, &quot;PG-13&quot;, &quot;PG-13&quot;, &quot;TV-MA&quot;, &quot;TV-MA&quot;…
+## $ duration     &lt;chr&gt; &quot;4 Seasons&quot;, &quot;93 min&quot;, &quot;78 min&quot;, &quot;80 min&quot;, &quot;123 min&quot;, &quot;1 …
+## $ listed_in    &lt;chr&gt; &quot;International TV Shows, TV Dramas, TV Sci-Fi &amp; Fantasy&quot;,…
+## $ description  &lt;chr&gt; &quot;In a future where the elite inhabit an island paradise f…</code></pre>
+<p>We can see that we have 7,787 rows and 12 columns. It seams also that the dataset contains also <em>TV Shows.</em> We can filter them out and select only the following columns:</p>
+<ul>
+<li><p><code>title</code></p></li>
+<li><p><code>description</code></p></li>
+<li><p><code>listed_in</code></p></li>
+</ul>
+<p>Moreover using <code>tidyr::separate_rows()</code> we can split the word of the <code>description</code> column and create a table with a row for each word.</p>
+<pre class="r"><code>netflix_films &lt;- 
+  netflix_titles %&gt;%  
+  filter(tolower(type)  == &quot;movie&quot;) %&gt;% 
+  select(title, description, listed_in) %&gt;% 
+  separate_rows(listed_in, sep = &quot;, &quot;)</code></pre>
+</div>
+<div id="eda" class="section level2">
+<h2>EDA</h2>
+<p>Let’s first of all perform some <strong>Exploratory Data Analysis</strong> (<strong>EDA</strong>). A useful information could be counting the number of films by category. This can be done as follows:</p>
+<pre class="r"><code>netflix_films %&gt;% 
+  count(listed_in, sort = T) %&gt;% 
+  mutate(listed_in = fct_reorder(listed_in, n)) %&gt;% 
+  
+  ggplot(aes(x = n, y = listed_in, fill = n)) +
+  geom_segment(aes(xend = 0, yend = listed_in), 
+               color = &quot;grey50&quot;) +
+  geom_point(aes(size = abs(n)), 
+             shape = 21, 
+             color = &quot;grey50&quot;, 
+             show.legend = FALSE)  +
+  scale_fill_viridis_c(option = &quot;C&quot;)  +
+  scale_size_continuous(range = c(4, 7)) +
+  labs(x = &quot;Number of films&quot;,  y = NULL)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<p>We have lots of categories, some with lots of observation other with very few. This is not the optimal condition for a <em>machine learning model</em>. We can follow different path here. We can select some categories and collapse all the other into a macro-category or we can select just few of them and drop all the others. For the sake of this simple tutorial we will select just some categories. We are going to select:</p>
+<ul>
+<li><p>Horror Movies</p></li>
+<li><p>Children &amp; Family Movies</p></li>
+<li><p>Documentaries</p></li>
+</ul>
+<p>We are left with 1,630.</p>
+<pre class="r"><code>category_to_select &lt;- 
+    c(&quot;Horror Movies&quot;, &quot;Children &amp; Family Movies&quot;,
+      &quot;Documentaries&quot;)
+
+netflix_films &lt;- netflix_films %&gt;%  
+  filter(listed_in %in% category_to_select)
+
+netflix_films %&gt;%  
+    count(listed_in, sort = TRUE) %&gt;% 
+    knitr::kable(align = &quot;lccrr&quot;,
+                 caption = &quot;Number of film by category&quot;)</code></pre>
+<table>
+<caption><span id="tab:unnamed-chunk-7">Table 1: </span>Number of film by category</caption>
+<thead>
+<tr class="header">
+<th align="left">listed_in</th>
+<th align="center">n</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Documentaries</td>
+<td align="center">786</td>
+</tr>
+<tr class="even">
+<td align="left">Children &amp; Family Movies</td>
+<td align="center">532</td>
+</tr>
+<tr class="odd">
+<td align="left">Horror Movies</td>
+<td align="center">312</td>
+</tr>
+</tbody>
+</table>
+<p>As can be seen the number of observations for each category is a bit different. We can ask our-self if the dataset is balanced or not. In order to answer this question we can use the <strong>Shannon Equitability Index which is a popular index to assess the diversity. And is computed as follows:</strong></p>
+<p><span class="math display">\[
+E_h=- \frac{\sum _{i=1}^{R}p_{i}\ln p_{i}}{\ln S}
+\]</span></p>
+<p>where:</p>
+<ul>
+<li><p><em>p<sub>i</sub></em> is the proportion of the samples belonging to the <em>i</em>th group</p></li>
+<li><p><em>S</em> is the total number of groups</p></li>
+</ul>
+<pre class="r"><code>shannon_index &lt;- function(data_frame, class){
+  result &lt;- data_frame %&gt;% 
+    count({{ class }}) %&gt;% 
+    mutate(check =  - (n / sum(n) * log(n / sum(n))) / 
+             log(length({{ class }}))) %&gt;% 
+    summarise(balance = sum(check))  %&gt;% 
+    pull(balance)
+    
+    return(result)
+}
+netflix_films %&gt;%  
+    count(listed_in) %&gt;% 
+    mutate(sum_n = sum(n)) %&gt;% 
+    mutate(check =  - (n / sum(n) * log(n / sum(n) ))) %&gt;% 
+    summarise(balance = sum(check)) </code></pre>
+<pre><code>## # A tibble: 1 × 1
+##   balance
+##     &lt;dbl&gt;
+## 1    1.03</code></pre>
+<pre class="r"><code>shannon_index_netflix &lt;- netflix_films %&gt;% 
+  shannon_index(class = listed_in) %&gt;%  round(digits = 2)
+netflix_films  %&gt;% 
+  mutate(film = &quot;film&quot;) %&gt;% 
+  group_by(listed_in) %&gt;% 
+  add_count() %&gt;% 
+  ggplot(aes(film, fill = listed_in, label = n)) +
+  geom_bar(position = position_fill(), color = &quot;black&quot;) +
+  scale_fill_ipsum() +
+  scale_y_percent(n.breaks = 8) +
+  labs(fill = NULL, x = NULL, y = &quot;Percentage of film&quot;,
+       title = &quot;Number of film per category&quot;,
+       subtitle  = paste0(&quot;Shannon index: &quot;, shannon_index_netflix)) + 
+  theme(legend.position = &quot;bottom&quot;,
+        axis.ticks.y = element_blank(),
+        axis.text.y = element_blank(),
+        text = element_text(size = 18)) +
+  coord_flip()  </code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
+</div>
+</div>

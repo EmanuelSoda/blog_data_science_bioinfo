@@ -1,0 +1,174 @@
+---
+title: Netflix description analysis
+author: Emanuel Michele Soda
+date: '2022-08-06'
+slug: netflix-description-analysis
+categories: []
+tags:
+  - netflix
+  - analysis
+editor_options: 
+  chunk_output_type: console
+---
+
+# Introduction
+
+## NPL a super brief introduction
+
+In this post we are going to have a look to what is called **Natural Language Processing** also known as **NLP**. First of all let's define what is NLP. According to [Wikipedia](https://en.wikipedia.org/wiki/Natural_language_processing):
+
+> ***Natural language processing** (**NLP**) is a subfield of [linguistics](https://en.wikipedia.org/wiki/Linguistics "Linguistics"), [computer science](https://en.wikipedia.org/wiki/Computer_science "Computer science"), and [artificial intelligence](https://en.wikipedia.org/wiki/Artificial_intelligence "Artificial intelligence") concerned with the interactions between computers and human language, in particular how to program computers to process and analyze large amounts of [natural language](https://en.wikipedia.org/wiki/Natural_language "Natural language") data. The goal is a computer capable of "understanding" the contents of documents, including the [contextual](https://en.wikipedia.org/wiki/Context_(language_use) "Context (language use)") nuances of the language within them. The technology can then accurately extract information and insights contained in the documents as well as categorize and organize the documents themselves.*
+
+In brief the NPL is a set of tools able to extract information from text data.
+
+For this very introductory tutorial we will analyse the description of **Netflix** movies and trying to predict the film category using the description. In order to perform this task we will use most above all those packages:
+
+-   `tidyverse` for the data manipulation
+
+-   `tidymodels` for the modelling
+
+-   `tidytext` for the analysis of the text data
+
+-   `textrecipes` for additional recipes step for text data
+
+## Importing the pacakges
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(tidymodels)
+library(tidytext)
+library(textrecipes)
+library(hrbrthemes)
+theme_set(theme_light(base_size = 20))
+```
+
+## Read data 
+
+```{r include=FALSE}
+path <- "/Users/ieo5571/Documents/blog_data_science_bioinfo/Data/tuesdata.csv"
+```
+
+The data is in *.csv* in order to read it we can use the `readr::read_csv()` function. Once the data are read and saved in the `netflix_titles` variable.
+
+```{r}
+netflix_titles <- readr::read_csv(path)
+
+```
+
+In order to have a look to the data we can use a very handy function from the `dplyr` which is `glimpse()`.
+
+```{r}
+dplyr::glimpse(netflix_titles)
+```
+
+We can see that we have 7,787 rows and 12 columns. It seams also that the dataset contains also *TV Shows.* We can filter them out and select only the following columns:
+
+-   `title`
+
+-   `description`
+
+-   `listed_in`
+
+Moreover using `tidyr::separate_rows()` we can split the word of the `description` column and create a table with a row for each word.
+
+```{r}
+netflix_films <- 
+  netflix_titles %>%  
+  filter(tolower(type)  == "movie") %>% 
+  select(title, description, listed_in) %>% 
+  separate_rows(listed_in, sep = ", ")
+```
+
+## EDA
+
+Let's first of all perform some **Exploratory Data Analysis** (**EDA**). A useful information could be counting the number of films by category. This can be done as follows:
+
+```{r}
+netflix_films %>% 
+  count(listed_in, sort = T) %>% 
+  mutate(listed_in = fct_reorder(listed_in, n)) %>% 
+  
+  ggplot(aes(x = n, y = listed_in, fill = n)) +
+  geom_segment(aes(xend = 0, yend = listed_in), 
+               color = "grey50") +
+  geom_point(aes(size = abs(n)), 
+             shape = 21, 
+             color = "grey50", 
+             show.legend = FALSE)  +
+  scale_fill_viridis_c(option = "C")  +
+  scale_size_continuous(range = c(4, 7)) +
+  labs(x = "Number of films",  y = NULL)
+```
+
+We have lots of categories, some with lots of observation other with very few. This is not the optimal condition for a *machine learning model*. We can follow different path here. We can select some categories and collapse all the other into a macro-category or we can select just few of them and drop all the others. For the sake of this simple tutorial we will select just some categories. We are going to select:
+
+-   Horror Movies
+
+-   Children & Family Movies
+
+-   Documentaries
+
+We are left with 1,630.
+
+```{r}
+category_to_select <- 
+    c("Horror Movies", "Children & Family Movies",
+      "Documentaries")
+
+netflix_films <- netflix_films %>%  
+  filter(listed_in %in% category_to_select)
+
+netflix_films %>%  
+    count(listed_in, sort = TRUE) %>% 
+    knitr::kable(align = "lccrr",
+                 caption = "Number of film by category")
+    
+```
+
+As can be seen the number of observations for each category is a bit different. We can ask our-self if the dataset is balanced or not. In order to answer this question we can use the **Shannon Equitability Index which is a popular index to assess the diversity. And is computed as follows:**
+
+$$
+E_h=- \frac{\sum _{i=1}^{R}p_{i}\ln p_{i}}{\ln S}
+$$
+
+where:
+
+-   *p~i~* is the proportion of the samples belonging to the *i*th group
+
+-   *S* is the total number of groups
+
+```{r}
+shannon_index <- function(data_frame, class){
+  result <- data_frame %>% 
+    count({{ class }}) %>% 
+    mutate(check =  - (n / sum(n) * log(n / sum(n))) / 
+             log(length({{ class }}))) %>% 
+    summarise(balance = sum(check))  %>% 
+    pull(balance)
+    
+    return(result)
+}
+netflix_films %>%  
+    count(listed_in) %>% 
+    mutate(sum_n = sum(n)) %>% 
+    mutate(check =  - (n / sum(n) * log(n / sum(n) ))) %>% 
+    summarise(balance = sum(check)) 
+shannon_index_netflix <- netflix_films %>% 
+  shannon_index(class = listed_in) %>%  round(digits = 2)
+netflix_films  %>% 
+  mutate(film = "film") %>% 
+  group_by(listed_in) %>% 
+  add_count() %>% 
+  ggplot(aes(film, fill = listed_in, label = n)) +
+  geom_bar(position = position_fill(), color = "black") +
+  scale_fill_ipsum() +
+  scale_y_percent(n.breaks = 8) +
+  labs(fill = NULL, x = NULL, y = "Percentage of film",
+       title = "Number of film per category",
+       subtitle  = paste0("Shannon index: ", shannon_index_netflix)) + 
+  theme(legend.position = "bottom",
+        axis.ticks.y = element_blank(),
+        axis.text.y = element_blank(),
+        text = element_text(size = 18)) +
+  coord_flip()  
+```
