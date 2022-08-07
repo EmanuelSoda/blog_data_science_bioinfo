@@ -21,8 +21,8 @@ editor_options:
 <blockquote>
 <p><em><strong>Natural language processing</strong> (<strong>NLP</strong>) is a subfield of <a href="https://en.wikipedia.org/wiki/Linguistics" title="Linguistics">linguistics</a>, <a href="https://en.wikipedia.org/wiki/Computer_science" title="Computer science">computer science</a>, and <a href="https://en.wikipedia.org/wiki/Artificial_intelligence" title="Artificial intelligence">artificial intelligence</a> concerned with the interactions between computers and human language, in particular how to program computers to process and analyze large amounts of <a href="https://en.wikipedia.org/wiki/Natural_language" title="Natural language">natural language</a> data. The goal is a computer capable of “understanding” the contents of documents, including the <a href="https://en.wikipedia.org/wiki/Context_(language_use)" title="Context (language use)">contextual</a> nuances of the language within them. The technology can then accurately extract information and insights contained in the documents as well as categorize and organize the documents themselves.</em></p>
 </blockquote>
-<p>In brief the NPL is a set of tools able to extract information from text data.</p>
-<p>For this very introductory tutorial we will analyse the description of <strong>Netflix</strong> movies and trying to predict the film category using the description. In order to perform this task we will use most above all those packages:</p>
+<p>In brief NPL is a set of tools able to extract information from text data.</p>
+<p>For this very introductory tutorial we will analyse the description of <strong>Netflix</strong> movies<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a> and trying to predict the film category using the description. In order to perform this task we will use above all those packages:</p>
 <ul>
 <li><p><code>tidyverse</code> for the data manipulation</p></li>
 <li><p><code>tidymodels</code> for the modelling</p></li>
@@ -41,7 +41,7 @@ theme_set(theme_light(base_size = 20))</code></pre>
 </div>
 <div id="read-data" class="section level2">
 <h2>Read data</h2>
-<p>The data is in <em>.csv</em> in order to read it we can use the <code>readr::read_csv()</code> function. Once the data are read and saved in the <code>netflix_titles</code> variable.</p>
+<p>The data is in <em>.csv</em> in order to read it we can use the <code>readr::read_csv()</code> function and save them in the <code>netflix_titles</code> variable.</p>
 <pre class="r"><code>netflix_titles &lt;- readr::read_csv(path)</code></pre>
 <pre><code>## Rows: 7787 Columns: 12
 ## ── Column specification ────────────────────────────────────────────────────────
@@ -80,31 +80,39 @@ theme_set(theme_light(base_size = 20))</code></pre>
   select(title, description, listed_in) %&gt;% 
   separate_rows(listed_in, sep = &quot;, &quot;)</code></pre>
 </div>
-<div id="eda" class="section level2">
-<h2>EDA</h2>
+<div id="exploratory-data-analysis" class="section level2">
+<h2>Exploratory Data Analysis</h2>
 <p>Let’s first of all perform some <strong>Exploratory Data Analysis</strong> (<strong>EDA</strong>). A useful information could be counting the number of films by category. This can be done as follows:</p>
-<pre class="r"><code>netflix_films %&gt;% 
-  count(listed_in, sort = T) %&gt;% 
-  mutate(listed_in = fct_reorder(listed_in, n)) %&gt;% 
-  
+<pre class="r"><code>netflix_films %&gt;%
+  count(listed_in, sort = T) %&gt;%
+  mutate(listed_in = fct_reorder(listed_in, n)) %&gt;%
   ggplot(aes(x = n, y = listed_in, fill = n)) +
-  geom_segment(aes(xend = 0, yend = listed_in), 
-               color = &quot;grey50&quot;) +
-  geom_point(aes(size = abs(n)), 
-             shape = 21, 
-             color = &quot;grey50&quot;, 
-             show.legend = FALSE)  +
-  scale_fill_viridis_c(option = &quot;C&quot;)  +
+  geom_segment(aes(xend = 0, yend = listed_in),
+    color = &quot;grey50&quot;
+  ) +
+  geom_point(aes(size = abs(n)),
+    shape = 21,
+    color = &quot;grey50&quot;,
+    show.legend = FALSE
+  ) +
+  scale_fill_viridis_c(option = &quot;C&quot;) +
   scale_size_continuous(range = c(4, 7)) +
-  labs(x = &quot;Number of films&quot;,  y = NULL)</code></pre>
+  labs(x = &quot;Number of films&quot;, y = NULL)</code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
-<p>We have lots of categories, some with lots of observation other with very few. This is not the optimal condition for a <em>machine learning model</em>. We can follow different path here. We can select some categories and collapse all the other into a macro-category or we can select just few of them and drop all the others. For the sake of this simple tutorial we will select just some categories. We are going to select:</p>
+<p>We have lots of categories!!!</p>
+<p>Some of the categories have lots of observations, while other very few. This is not the optimal condition for a <em>machine learning model</em>.</p>
+<p>We can follow different path here:</p>
+<ul>
+<li><p>We can select some categories and collapse all the other into a macro category</p></li>
+<li><p>We can select just few of them and drop all the others.</p></li>
+</ul>
+<p>For the sake of this simple tutorial we will select just some categories which are:</p>
 <ul>
 <li><p>Horror Movies</p></li>
 <li><p>Children &amp; Family Movies</p></li>
 <li><p>Documentaries</p></li>
 </ul>
-<p>We are left with 1,630.</p>
+<p>In doing so we are left with 1,630.</p>
 <pre class="r"><code>category_to_select &lt;- 
     c(&quot;Horror Movies&quot;, &quot;Children &amp; Family Movies&quot;,
       &quot;Documentaries&quot;)
@@ -139,7 +147,7 @@ netflix_films %&gt;%
 </tr>
 </tbody>
 </table>
-<p>As can be seen the number of observations for each category is a bit different. We can ask our-self if the dataset is balanced or not. In order to answer this question we can use the <strong>Shannon Equitability Index which is a popular index to assess the diversity. And is computed as follows:</strong></p>
+<p>As can be seen the number of observations for each category is a bit different. We can ask ourself if the dataset is balanced or not. In order to answer this question we can use the <strong>Shannon Equitability Index which is a popular index to assess diversity. It is computed as follows:</strong></p>
 <p><span class="math display">\[
 E_h=- \frac{\sum _{i=1}^{R}p_{i}\ln p_{i}}{\ln S}
 \]</span></p>
@@ -155,9 +163,9 @@ E_h=- \frac{\sum _{i=1}^{R}p_{i}\ln p_{i}}{\ln S}
              log(length({{ class }}))) %&gt;% 
     summarise(balance = sum(check))  %&gt;% 
     pull(balance)
-    
     return(result)
 }
+
 netflix_films %&gt;%  
     count(listed_in) %&gt;% 
     mutate(sum_n = sum(n)) %&gt;% 
@@ -168,7 +176,9 @@ netflix_films %&gt;%
 ##     &lt;dbl&gt;
 ## 1    1.03</code></pre>
 <pre class="r"><code>shannon_index_netflix &lt;- netflix_films %&gt;% 
-  shannon_index(class = listed_in) %&gt;%  round(digits = 2)
+  shannon_index(class = listed_in) %&gt;%  
+    round(digits = 2)
+
 netflix_films  %&gt;% 
   mutate(film = &quot;film&quot;) %&gt;% 
   group_by(listed_in) %&gt;% 
@@ -179,7 +189,8 @@ netflix_films  %&gt;%
   scale_y_percent(n.breaks = 8) +
   labs(fill = NULL, x = NULL, y = &quot;Percentage of film&quot;,
        title = &quot;Number of film per category&quot;,
-       subtitle  = paste0(&quot; Shannon Equitability Index: &quot;, shannon_index_netflix)) + 
+       subtitle  = paste0(&quot; Shannon Equitability Index: &quot;,
+                          shannon_index_netflix)) + 
   theme(legend.position = &quot;bottom&quot;,
         axis.ticks.y = element_blank(),
         axis.text.y = element_blank(),
@@ -187,8 +198,9 @@ netflix_films  %&gt;%
   coord_flip()  </code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
 <p>According to the <strong>Shannon Equitability Index</strong> the dataset is balanced. For this reason we can go on with our analysis.</p>
-<p>Another interesting thing that we could be interesting in is counting the number of words by category this because a word that is recurrent in a category will be very useful in the prediction.</p>
-<p>As can be seen from the plot the most <em>documentary</em> seams to be present a lot in documentary, which is of course expected, I presume that Netflix descriptions starts with the word documentary. We can also notice that we have a problem with words like <strong>find</strong> and <strong>finds</strong>. This is a <strong>stemming problem</strong> but for the sake of this tutorial we will ignore this problem. If you are interested in what is stemming here the link to <a href="https://en.wikipedia.org/wiki/Stemming">the Wikipedia page</a>.</p>
+<p>We are now going to count the number of words by category. Ideally words that are recurrent in a category will be very useful in the modelling part.</p>
+<p>As can be seen from the plot the most recurrent word in a category is <em>documentary . As expected</em> it is present a lot in documentary.</p>
+<p>We can also notice that we have a problem with words like <strong>find</strong> and <strong>finds</strong>. This is a <strong>stemming problem</strong> but for the sake of this tutorial we will ignore this problem. If you are interested in what is stemming here the link to <a href="https://en.wikipedia.org/wiki/Stemming">the Wikipedia page</a>.</p>
 <pre class="r"><code>word_by_category &lt;- 
   netflix_films %&gt;% 
   unnest_tokens(word, description)  %&gt;%
@@ -225,8 +237,9 @@ films_test &lt;- testing(films_split)
 
 set.seed(42)
 films_folds &lt;- vfold_cv(films_train, strata = listed_in)</code></pre>
-<p>From now on we will only work on the training <code>films_train</code> and <code>films_test</code>will be used just to assess the quality of our model on new data.</p>
-<p>A first type of analysis that we can make is performing a Principal Component Analysis. In order to do that we have to transform the word in a numerical matrix. A very effective way to do that is using <strong>tf-idf</strong>.</p>
+<p>From now on we will only work on the training <code>films_train</code> and <code>films_test</code>will be used just to assess the quality of our model on new data at the end on the analysis.</p>
+<p>A first type of analysis that we can make is performing a Principal Component Analysis. PCA is an unsupervised modelling analysis in which the original space generated by the predictors is transformed into another space in which the variance is maximized along the axis. On top of this PCA has another very interesting properties, the first PC is the one with the highest explained variance, the second PC is the second with the highest explained variance and so on.</p>
+<p>But, in order to use PCA we have to transform the word in a numerical matrix. A very effective way to do that is using <strong>tf-idf</strong>.</p>
 <p>In a very simple way <strong>tf</strong> e <strong>idf.</strong> The <span class="math inline">\(tf\)</span> part is defined as follow:</p>
 <p><span class="math display">\[
 {tf_{i,j}} ={\frac {n_{i,j}}{|d_{j}|}}
@@ -245,9 +258,10 @@ films_folds &lt;- vfold_cv(films_train, strata = listed_in)</code></pre>
 <p><span class="math display">\[
 \mathrm {(tf{\mbox{-}}idf)_{i,j}} =\mathrm {tf_{i,j}} \times \mathrm {idf_{i}} .
 \]</span></p>
+<p>As can be seen this matrix is very sparse and this is typical of text data.</p>
 <pre class="r"><code>films_rep_pca &lt;- 
   recipe(listed_in ~ description, films_train) %&gt;% 
-  step_tokenize(description, options = list(lowercase = TRUE)) %&gt;% 
+  step_tokenize(description, options = list(lowercase = TRUE)) %&gt;%
   step_stopwords(all_predictors()) %&gt;% 
   step_tokenfilter(all_predictors()) %&gt;% 
   step_tfidf(all_predictors())  %&gt;% 
@@ -271,7 +285,7 @@ films_juice_pca &lt;-
        y = &quot;Principal component 2 (PC02)&quot;) +
   theme(legend.position = &quot;top&quot;,
         text = element_text(size = 15)) </code></pre>
-<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-12-1.png" width="672" /></p>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-13-1.png" width="672" /></p>
 <pre class="r"><code>films_juice_pca %&gt;% 
   pivot_longer(PC01:PC02) %&gt;% 
   mutate(name = 
@@ -287,8 +301,8 @@ films_juice_pca &lt;-
   labs(fill = NULL, x = NULL, y = NULL) +
   theme(legend.position = &quot;top&quot;)  +
   scale_color_manual(values = rep(&quot;black&quot;, 3))</code></pre>
-<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-13-1.png" width="672" /></p>
-<p>From the PCA we can obtain other information. Each principal component is a linear combination of the original columns. We can extract how each column (in our case word) influences each component looking at the loading.</p>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-14-1.png" width="672" /></p>
+<p>From the PCA we can obtain other information. Each principal component is a linear combination of the original columns. We can extract for each PC the word by which it is created by looking at the loading.</p>
 <pre class="r"><code>pca_loading &lt;- 
   tidy(films_rep_pca %&gt;% prep(), number = 6, type = &quot;coef&quot;) %&gt;% 
   filter(component %in% paste0(&quot;PC&quot;, 1:2)) %&gt;% 
@@ -314,15 +328,15 @@ pca_loading %&gt;%
   scale_y_reordered()  + 
   theme(text = element_text(size = 15))</code></pre>
 <pre><code>## Warning: Removed 45 rows containing missing values (geom_text).</code></pre>
-<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-14-1.png" width="672" /></p>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-15-1.png" width="672" /></p>
 </div>
 <div id="modelling" class="section level2">
 <h2>Modelling</h2>
-<p>Using the <code>recipes</code> a simple preprocessing recipe can be created. The a model in this case a linear support vector machine is created</p>
+<p>Using the <code>recipes</code> a simple preprocessing recipe can be created. Then a model in this case a we are using linear support vector machine which works very well with text is created.</p>
 <pre class="r"><code>films_rep &lt;- 
   recipe(listed_in ~ ., films_train) %&gt;% 
-  update_role(title, new_role = &quot;ID&quot;) %&gt;% 
-  step_tokenize(description, options = list(lowercase = TRUE)) %&gt;% 
+  update_role(title, new_role = &quot;ID&quot;) %&gt;%
+  step_tokenize(description, options = list(lowercase = TRUE)) %&gt;%
   step_stopwords(all_predictors()) %&gt;% 
   step_tokenfilter(all_predictors()) %&gt;% 
   step_tfidf(all_predictors()) %&gt;% 
@@ -356,7 +370,7 @@ svm_spec</code></pre>
 ##   cost = 0.5
 ## 
 ## Computational engine: kernlab</code></pre>
-<p>In order to train the model on our dataset we can take advantage of the <code>tidymodel</code> ecosystem and create a <code>workflow object</code></p>
+<p>In order to train the model on our dataset we can take advantage of the <code>tidymodel</code> ecosystem and create a <code>workflow object</code> which can be seen as a place to store both preprocessing step and a model.</p>
 <pre class="r"><code>films_wf &lt;- workflow() %&gt;%
   add_recipe(films_rep) 
 films_wf</code></pre>
@@ -382,7 +396,31 @@ sv_film_res &lt;- films_wf %&gt;%
     metrics = metric_set(roc_auc, accuracy, sens, spec),
     control = control_grid(save_pred = TRUE, verbose = TRUE)
   )</code></pre>
-<p>The accuracy achieved by this simple model is <span class="math inline">\(68%\)</span> which is not extraordinary but is anyway good enough considering the little effort we have put. What is very good is that this model achieves a very high <em>specificity</em> which means that we have very low false positive and for this reason we can trust what out models says.</p>
+<p>The accuracy achieved by this simple model is <span class="math inline">\(68\%\)</span> which is not extraordinary but is anyway good enough considering the little effort we have put. Moreover, if we create an empty model we obtain only an accuracy of <span class="math inline">\(48\%\)</span> .</p>
+<p>What is very good is that this model achieves a very high <em>specificity</em> which means that we have very low <em>false positive.</em> Which means that most of the time if for example it says “Documentary” it is actually a Documentary.</p>
+<pre class="r"><code># NUll model
+
+model_null &lt;- null_model() %&gt;% 
+  set_engine(&quot;parsnip&quot;) %&gt;% 
+  set_mode(&quot;classification&quot;)
+
+set.seed(1234)
+workflow() %&gt;% 
+    add_recipe(films_rep) %&gt;%
+    add_model(model_null) %&gt;%  
+    fit_resamples(
+        resamples = films_folds,
+        metrics = metric_set(roc_auc, accuracy, sens, spec),
+        control = control_grid(save_pred = TRUE, verbose = TRUE)
+    )  %&gt;%  
+    collect_metrics()</code></pre>
+<pre><code>## # A tibble: 4 × 6
+##   .metric  .estimator  mean     n  std_err .config             
+##   &lt;chr&gt;    &lt;chr&gt;      &lt;dbl&gt; &lt;int&gt;    &lt;dbl&gt; &lt;chr&gt;               
+## 1 accuracy multiclass 0.482    10 0.000635 Preprocessor1_Model1
+## 2 roc_auc  hand_till  0.5      10 0        Preprocessor1_Model1
+## 3 sens     macro      0.333    10 0        Preprocessor1_Model1
+## 4 spec     macro      0.667    10 0        Preprocessor1_Model1</code></pre>
 <pre class="r"><code>sv_film_res_metrics &lt;-
     collect_metrics(sv_film_res) %&gt;% 
   select(.metric, mean, std_err)  %&gt;% 
@@ -405,8 +443,13 @@ sv_film_res_metrics %&gt;%
   labs(y = &quot;10 folds cross validated value&quot;, x = NULL)  +
   scale_fill_manual(values = c(&quot;#f9b4ab&quot;, &quot;#264e70&quot;,
                                &quot;#679186&quot;, &quot;#fdebd3&quot;))</code></pre>
-<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-19-1.png" width="672" /></p>
-<p>Using the <code>vip</code> we can compute what are the features that influence the most our prediction. As we could expect <em>documentary</em> is the most important word but other word seems very interesting like <em>evil</em>, <em>christmas</em> <em>magic.</em></p>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-21-1.png" width="672" /></p>
+<p>Using the <code>vip</code> package we can compute what are the features that influence the most our prediction. As we could expect <em>documentary</em> is the most important word but other word seems very interesting like:</p>
+<ul>
+<li><p><strong><em>evil</em></strong></p></li>
+<li><p><strong><em>Christmas</em></strong></p></li>
+<li><p><strong><em>magic</em></strong></p></li>
+</ul>
 <pre class="r"><code>library(vip)</code></pre>
 <pre><code>## 
 ## Attaching package: &#39;vip&#39;</code></pre>
@@ -455,16 +498,16 @@ films_imp &lt;- films_wf %&gt;%
     Variable = fct_reorder(Variable, Importance)
   ) %&gt;%
   ggplot(aes(Importance, Variable, color = Importance)) +
-  geom_errorbar(aes(xmin = Importance - StDev, xmax = Importance + StDev),
+  geom_errorbar(aes(xmin = Importance - StDev, 
+                    xmax = Importance + StDev),
     alpha = 0.5, size = 1.3) +
   geom_point(size = 3) +
   theme(legend.position = &quot;top&quot;) +
   labs(y = NULL, color = &quot;Feature importance&quot;) + 
   scale_color_viridis_c(option = &quot;C&quot;)  +
-  guides(color = guide_colourbar(barwidth = 30, 
-                                 title.position = &quot;top&quot;)) +
-  theme(text = element_text(size = 30))</code></pre>
-<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-20-1.png" width="672" /></p>
+  guides(color = guide_colourbar(barwidth = 20, 
+                                 title.position = &quot;top&quot;)) </code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-22-1.png" width="672" /></p>
 <p>We can finally test out model on the test set and see if we overfitted or not.</p>
 <pre class="r"><code>films_final &lt;- films_wf %&gt;%
   add_model(svm_spec) %&gt;%
@@ -491,7 +534,7 @@ films_imp &lt;- films_wf %&gt;%
     labs(y = NULL, x = NULL)  +
     scale_fill_manual(values = c(&quot;#f9b4ab&quot;, &quot;#264e70&quot;, 
                                &quot;#679186&quot;, &quot;#fdebd3&quot;))</code></pre>
-<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-22-1.png" width="672" /></p>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-24-1.png" width="672" /></p>
 <pre class="r"><code>mat &lt;- collect_predictions(films_final) %&gt;% 
   janitor::clean_names()   %&gt;%
   conf_mat(pred_class, listed_in)   
@@ -517,6 +560,16 @@ mat$table %&gt;%
   coord_fixed() +
   guides(fill = guide_colourbar(barwidth = 15), 
          text  = element_text(size = 10)) </code></pre>
-<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-23-1.png" width="960" /></p>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-25-1.png" width="960" /></p>
 </div>
+</div>
+<div id="end" class="section level1">
+<h1>End</h1>
+<p>We have made through this analysis. We have learn that text data are very sparse, linear models like PCA and linear SVM works very well with those type of data.</p>
+</div>
+<div class="footnotes footnotes-end-of-document">
+<hr />
+<ol>
+<li id="fn1"><p>More information can be found here <a href="https://github.com/rfordatascience/tidytuesday/tree/master/data/2021/2021-04-20">Netflix Shows</a><a href="#fnref1" class="footnote-back">↩︎</a></p></li>
+</ol>
 </div>
