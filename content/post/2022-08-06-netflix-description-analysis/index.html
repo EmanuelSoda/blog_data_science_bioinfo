@@ -179,12 +179,344 @@ netflix_films  %&gt;%
   scale_y_percent(n.breaks = 8) +
   labs(fill = NULL, x = NULL, y = &quot;Percentage of film&quot;,
        title = &quot;Number of film per category&quot;,
-       subtitle  = paste0(&quot;Shannon index: &quot;, shannon_index_netflix)) + 
+       subtitle  = paste0(&quot; Shannon Equitability Index: &quot;, shannon_index_netflix)) + 
   theme(legend.position = &quot;bottom&quot;,
         axis.ticks.y = element_blank(),
         axis.text.y = element_blank(),
         text = element_text(size = 18)) +
   coord_flip()  </code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
+<p>According to the <strong>Shannon Equitability Index</strong> the dataset is balanced. For this reason we can go on with our analysis.</p>
+<p>Another interesting thing that we could be interesting in is counting the number of words by category this because a word that is recurrent in a category will be very useful in the prediction.</p>
+<p>As can be seen from the plot the most <em>documentary</em> seams to be present a lot in documentary, which is of course expected, I presume that Netflix descriptions starts with the word documentary. We can also notice that we have a problem with words like <strong>find</strong> and <strong>finds</strong>. This is a <strong>stemming problem</strong> but for the sake of this tutorial we will ignore this problem. If you are interested in what is stemming here the link to <a href="https://en.wikipedia.org/wiki/Stemming">the Wikipedia page</a>.</p>
+<pre class="r"><code>word_by_category &lt;- 
+  netflix_films %&gt;% 
+  unnest_tokens(word, description)  %&gt;%
+  anti_join(get_stopwords(), by = &quot;word&quot;)  %&gt;% 
+  count(word, listed_in,  sort = TRUE)   %&gt;% 
+  group_by(listed_in) %&gt;% 
+  slice_max(n = 15, order_by = n) %&gt;%  
+  ungroup() %&gt;% 
+  add_count(listed_in, name = &quot;n_listed_in&quot;) %&gt;%  
+  mutate(word = reorder_within(x = word, by = n, 
+                               within = listed_in)) 
+  
+
+ggplot(word_by_category, aes(n, word, fill = listed_in)) +
+  geom_segment(aes(xend = 0, yend = word), color = &quot;grey50&quot;) +
+  geom_point(aes(size = abs(n)), shape = 21, color = &quot;grey50&quot;, 
+             show.legend = FALSE) + 
+  facet_wrap(vars(listed_in), scales = &quot;free_y&quot;, ncol = 1) +
+  scale_y_reordered() + 
+  scale_fill_ipsum() +
+  labs(y = NULL, x = &quot;Number of word&quot;) +
+  theme(text = element_text(size = 18)) +
+  scale_size_continuous(range = c(3, 10))</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
+</div>
+<div id="unsupervised-analysis" class="section level2">
+<h2>Unsupervised Analysis</h2>
+<p>Finally we can start to model our data. The first step is to split our data in training and testing set, in addition in we will create some resampling folds to perform the cross validation.</p>
+<pre class="r"><code>set.seed(123)
+films_split &lt;- initial_split(netflix_films, strata =  listed_in)
+
+films_train &lt;- training(films_split)
+films_test &lt;- testing(films_split)
+
+set.seed(42)
+films_folds &lt;- vfold_cv(films_train, strata = listed_in)</code></pre>
+<p>From now on we will only work on the training <code>films_train</code> and <code>films_test</code>will be used just to assess the quality of our model on new data.</p>
+<p>A first type of analysis that we can make is performing a Principal Component Analysis. In order to do that we have to transform the word in a numerical matrix. A very effective way to do that is using <strong>tf-idf</strong>.</p>
+<p>In a very simple way <strong>tf</strong> e <strong>idf.</strong> The <span class="math inline">\(tf\)</span> part is defined as follow:</p>
+<p><span class="math display">\[
+{tf_{i,j}} ={\frac {n_{i,j}}{|d_{j}|}}
+\]</span></p>
+<ul>
+<li><p><span class="math inline">\(n_{i,j}\)</span> is the number of occurrence of the term <span class="math inline">\(i\)</span> in the document <span class="math inline">\(j\)</span></p></li>
+<li><p><span class="math inline">\(|d_{j}|\)</span> is the dimension of the document expressed in number of terms</p></li>
+</ul>
+<p>While the <span class="math inline">\(idf\)</span> parte is comuted as follow:</p>
+<p><span class="math display">\[{idf_{i}} =\log _{10}{\frac {|D|}{|\{d:i\in d\}|}}\]</span></p>
+<ul>
+<li><p><span class="math inline">\(|D|\)</span> is the number of document in the collection</p></li>
+<li><p><span class="math inline">\(|d_{j}|\)</span> is the number of the document that contains the <span class="math inline">\(i\)</span> document</p></li>
+</ul>
+<p>In the end <span class="math inline">\(tf-idf\)</span> is computed as:</p>
+<p><span class="math display">\[
+\mathrm {(tf{\mbox{-}}idf)_{i,j}} =\mathrm {tf_{i,j}} \times \mathrm {idf_{i}} .
+\]</span></p>
+<pre class="r"><code>films_rep_pca &lt;- 
+  recipe(listed_in ~ description, films_train) %&gt;% 
+  step_tokenize(description, options = list(lowercase = TRUE)) %&gt;% 
+  step_stopwords(all_predictors()) %&gt;% 
+  step_tokenfilter(all_predictors()) %&gt;% 
+  step_tfidf(all_predictors())  %&gt;% 
+  step_normalize(all_numeric_predictors())  %&gt;% 
+  step_pca(all_numeric_predictors(), num_comp = 10) 
+  
+
+films_juice_pca &lt;- 
+  films_rep_pca %&gt;% 
+  prep() %&gt;% 
+  juice()</code></pre>
+<p>Looking at the <strong>PCA</strong> we can see that the first component divides quite well the Documentary and the Children &amp; Family Movies while the second component divides Horror movies from the other two category.</p>
+<pre class="r"><code>films_juice_pca %&gt;% 
+  ggplot(aes(PC01, PC02, fill = listed_in)) +
+  geom_point(shape = 21, size = 8) +
+  scale_fill_ipsum(guide = 
+                       guide_legend(title = NULL, 
+                                    override.aes =
+                                        list(size = 10))) +
+  labs(x = &quot;Principal component 1 (PC01)&quot;, 
+       y = &quot;Principal component 2 (PC02)&quot;) +
+  theme(legend.position = &quot;top&quot;,
+        text = element_text(size = 15)) </code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-12-1.png" width="672" /></p>
+<pre class="r"><code>films_juice_pca %&gt;% 
+  pivot_longer(PC01:PC02) %&gt;% 
+  mutate(name = 
+           if_else(name == &quot;PC01&quot;, 
+                   &quot;Principal component 1\n(PC01)&quot;,
+                   &quot;Principal component 2\n(PC02)&quot;)) %&gt;% 
+  ggplot(aes(name, value)) +
+  geom_violin(aes(fill = listed_in), 
+              position = position_dodge(0.8), alpha = 0.8) +
+  geom_boxplot(aes(color = listed_in),  show.legend = FALSE,
+               position = position_dodge(0.8), width = 0.1) +
+  scale_fill_ipsum() +
+  labs(fill = NULL, x = NULL, y = NULL) +
+  theme(legend.position = &quot;top&quot;)  +
+  scale_color_manual(values = rep(&quot;black&quot;, 3))</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-13-1.png" width="672" /></p>
+<p>From the PCA we can obtain other information. Each principal component is a linear combination of the original columns. We can extract how each column (in our case word) influences each component looking at the loading.</p>
+<pre class="r"><code>pca_loading &lt;- 
+  tidy(films_rep_pca %&gt;% prep(), number = 6, type = &quot;coef&quot;) %&gt;% 
+  filter(component %in% paste0(&quot;PC&quot;, 1:2)) %&gt;% 
+  mutate(terms = str_remove(terms, &quot;tfidf_description_&quot;))  %&gt;% 
+  mutate(sign = if_else(value &gt; 0, &quot;Positive&quot;, &quot;Negative&quot;)) 
+
+pca_loading %&gt;%  
+  mutate(label = if_else(abs(value) &gt; 0.25, 
+                         round(value, 1), NULL)) %&gt;% 
+  group_by(component) %&gt;% 
+  slice_max(n = 25, order_by = abs(value)) %&gt;% 
+  mutate(terms = reorder_within(terms, value, component)) %&gt;% 
+  ggplot(aes(x = value, y = terms, fill = sign)) +
+  geom_segment(aes(xend = 0, yend = terms), color = &quot;grey50&quot;) +
+  geom_point(aes(size = abs(value)), shape = 21, 
+             color = &quot;grey50&quot;, show.legend = FALSE) +
+  geom_text(aes(label = label), size = 2.5) +
+  facet_wrap(vars(component), scales = &quot;free_y&quot;, ncol = 1) + 
+  scale_fill_manual(values = c(&quot;#de2d26&quot;, &quot;#31a354&quot;)) +
+  labs(x = &quot;Loading&quot;, y = NULL, 
+       title = &quot;Top 25 word by component&quot;) +
+  scale_size_continuous(range = c(2, 10)) +
+  scale_y_reordered()  + 
+  theme(text = element_text(size = 15))</code></pre>
+<pre><code>## Warning: Removed 45 rows containing missing values (geom_text).</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-14-1.png" width="672" /></p>
+</div>
+<div id="modelling" class="section level2">
+<h2>Modelling</h2>
+<p>Using the <code>recipes</code> a simple preprocessing recipe can be created. The a model in this case a linear support vector machine is created</p>
+<pre class="r"><code>films_rep &lt;- 
+  recipe(listed_in ~ ., films_train) %&gt;% 
+  update_role(title, new_role = &quot;ID&quot;) %&gt;% 
+  step_tokenize(description, options = list(lowercase = TRUE)) %&gt;% 
+  step_stopwords(all_predictors()) %&gt;% 
+  step_tokenfilter(all_predictors()) %&gt;% 
+  step_tfidf(all_predictors()) %&gt;% 
+  step_normalize(all_predictors())
+  
+films_rep</code></pre>
+<pre><code>## Recipe
+## 
+## Inputs:
+## 
+##       role #variables
+##         ID          1
+##    outcome          1
+##  predictor          1
+## 
+## Operations:
+## 
+## Tokenization for description
+## Stop word removal for all_predictors()
+## Text filtering for all_predictors()
+## Term frequency-inverse document frequency with all_predictors()
+## Centering and scaling for all_predictors()</code></pre>
+<pre class="r"><code>svm_spec &lt;- svm_linear(cost = 0.5) %&gt;%
+  set_engine(&quot;kernlab&quot;) %&gt;%
+  set_mode(&quot;classification&quot;)
+
+svm_spec</code></pre>
+<pre><code>## Linear Support Vector Machine Model Specification (classification)
+## 
+## Main Arguments:
+##   cost = 0.5
+## 
+## Computational engine: kernlab</code></pre>
+<p>In order to train the model on our dataset we can take advantage of the <code>tidymodel</code> ecosystem and create a <code>workflow object</code></p>
+<pre class="r"><code>films_wf &lt;- workflow() %&gt;%
+  add_recipe(films_rep) 
+films_wf</code></pre>
+<pre><code>## ══ Workflow ════════════════════════════════════════════════════════════════════
+## Preprocessor: Recipe
+## Model: None
+## 
+## ── Preprocessor ────────────────────────────────────────────────────────────────
+## 5 Recipe Steps
+## 
+## • step_tokenize()
+## • step_stopwords()
+## • step_tokenfilter()
+## • step_tfidf()
+## • step_normalize()</code></pre>
+<pre class="r"><code>doParallel::registerDoParallel(cores = 8)
+
+set.seed(1234)
+sv_film_res &lt;- films_wf %&gt;% 
+  add_model(svm_spec) %&gt;%
+  fit_resamples(
+    resamples = films_folds,
+    metrics = metric_set(roc_auc, accuracy, sens, spec),
+    control = control_grid(save_pred = TRUE, verbose = TRUE)
+  )</code></pre>
+<p>The accuracy achieved by this simple model is <span class="math inline">\(68%\)</span> which is not extraordinary but is anyway good enough considering the little effort we have put. What is very good is that this model achieves a very high <em>specificity</em> which means that we have very low false positive and for this reason we can trust what out models says.</p>
+<pre class="r"><code>sv_film_res_metrics &lt;-
+    collect_metrics(sv_film_res) %&gt;% 
+  select(.metric, mean, std_err)  %&gt;% 
+  mutate(.metric = case_when(
+    .metric == &quot;roc_auc&quot; ~ &quot;roc auc&quot;,
+    .metric == &quot;sens&quot; ~ &quot;sensitivity&quot;,
+    .metric == &quot;spec&quot; ~ &quot;specificity&quot;,
+    TRUE ~ .metric)) 
+
+sv_film_res_metrics %&gt;% 
+  ggplot(aes(.metric, mean, fill = .metric)) +
+  geom_errorbar(aes(ymin = mean - std_err,
+                    ymax = mean + std_err),
+                width=.2, size = 2)  +
+  geom_point(shape = 21, show.legend = FALSE,
+             size = 10)  +
+  scale_y_continuous(labels = 
+                         paste0(seq(0.5, 1, 0.015) * 100, &quot;%&quot;), 
+                     breaks = seq(0.5, 1, 0.015)) +
+  labs(y = &quot;10 folds cross validated value&quot;, x = NULL)  +
+  scale_fill_manual(values = c(&quot;#f9b4ab&quot;, &quot;#264e70&quot;,
+                               &quot;#679186&quot;, &quot;#fdebd3&quot;))</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-19-1.png" width="672" /></p>
+<p>Using the <code>vip</code> we can compute what are the features that influence the most our prediction. As we could expect <em>documentary</em> is the most important word but other word seems very interesting like <em>evil</em>, <em>christmas</em> <em>magic.</em></p>
+<pre class="r"><code>library(vip)</code></pre>
+<pre><code>## 
+## Attaching package: &#39;vip&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:utils&#39;:
+## 
+##     vi</code></pre>
+<pre class="r"><code>films_train %&gt;%  mutate(listed_in = factor(listed_in)) </code></pre>
+<pre><code>## # A tibble: 1,222 × 3
+##    title                                   description                   liste…¹
+##    &lt;chr&gt;                                   &lt;chr&gt;                         &lt;fct&gt;  
+##  1 A Babysitter&#39;s Guide to Monster Hunting Recruited by a secret societ… Childr…
+##  2 A Champion Heart                        When a grieving teen must wo… Childr…
+##  3 A Christmas Prince                      Christmas comes early for an… Childr…
+##  4 A Christmas Prince: The Royal Baby      Christmas brings the ultimat… Childr…
+##  5 A Christmas Prince: The Royal Wedding   A year after helping Richard… Childr…
+##  6 A Cinderella Story                      Teen Sam meets the boy of he… Childr…
+##  7 A Fairly Odd Summer                     In this live-action adventur… Childr…
+##  8 A Go! Go! Cory Carson Christmas         When a familiar-looking stra… Childr…
+##  9 A Go! Go! Cory Carson Halloween         Cory, Chrissy and Freddie ar… Childr…
+## 10 A Go! Go! Cory Carson Summer Camp       Cory&#39;s spending the summer a… Childr…
+## # … with 1,212 more rows, and abbreviated variable name ¹​listed_in
+## # ℹ Use `print(n = ...)` to see more rows</code></pre>
+<pre class="r"><code>films_train$listed_in %&gt;%  unique()</code></pre>
+<pre><code>## [1] &quot;Children &amp; Family Movies&quot; &quot;Documentaries&quot;           
+## [3] &quot;Horror Movies&quot;</code></pre>
+<pre class="r"><code>films_train$listed_in &lt;- 
+    fct_relevel(films_train$listed_in , 
+                ref = &quot;Children &amp; Family Movies&quot;)
+
+set.seed(345)
+films_imp &lt;- films_wf %&gt;%
+  add_model(svm_spec) %&gt;%
+  fit(films_train) %&gt;%
+  extract_fit_parsnip() %&gt;%
+  vi(
+    method = &quot;permute&quot;, nsim = 10,
+    target = &quot;listed_in&quot;, metric = &quot;accuracy&quot;,
+    pred_wrapper = kernlab::predict, 
+    train = juice(films_rep %&gt;%  prep())
+  )</code></pre>
+<pre><code>##  Setting default kernel parameters</code></pre>
+<pre class="r"><code>films_imp %&gt;% 
+  slice_max(Importance, n = 25) %&gt;%
+  mutate(
+    Variable = str_remove(Variable, &quot;tfidf_description_&quot;),
+    Variable = fct_reorder(Variable, Importance)
+  ) %&gt;%
+  ggplot(aes(Importance, Variable, color = Importance)) +
+  geom_errorbar(aes(xmin = Importance - StDev, xmax = Importance + StDev),
+    alpha = 0.5, size = 1.3) +
+  geom_point(size = 3) +
+  theme(legend.position = &quot;top&quot;) +
+  labs(y = NULL, color = &quot;Feature importance&quot;) + 
+  scale_color_viridis_c(option = &quot;C&quot;)  +
+  guides(color = guide_colourbar(barwidth = 30, 
+                                 title.position = &quot;top&quot;)) +
+  theme(text = element_text(size = 30))</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-20-1.png" width="672" /></p>
+<p>We can finally test out model on the test set and see if we overfitted or not.</p>
+<pre class="r"><code>films_final &lt;- films_wf %&gt;%
+  add_model(svm_spec) %&gt;%
+  last_fit(films_split, 
+           metrics = metric_set(roc_auc, accuracy, 
+                                sens, spec))</code></pre>
+<p>Looking at the metrics and the confusion matrix it seams that we do not overfitted to much.</p>
+<pre class="r"><code>collect_metrics(films_final) %&gt;% 
+  select(.metric, .estimate)  %&gt;% 
+  mutate(.metric = case_when(
+    .metric == &quot;roc_auc&quot; ~ &quot;roc auc&quot;,
+    .metric == &quot;sens&quot; ~ &quot;sensitivity&quot;,
+    .metric == &quot;spec&quot; ~ &quot;specificity&quot;,
+    TRUE ~ .metric
+  )) %&gt;% 
+    ggplot(aes(.metric, .estimate, fill = .metric)) +
+    geom_segment(aes(xend = .metric, yend = 0.5), 
+               color = &quot;grey50&quot;) +
+    geom_point(shape = 21, show.legend = FALSE,
+               size = 10)  +
+    scale_y_continuous(labels = paste0(seq(0.5, 1, 0.015) *100, 
+                                     &quot;%&quot;), 
+                       breaks = seq(0.5, 1, 0.015)) +
+    labs(y = NULL, x = NULL)  +
+    scale_fill_manual(values = c(&quot;#f9b4ab&quot;, &quot;#264e70&quot;, 
+                               &quot;#679186&quot;, &quot;#fdebd3&quot;))</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-22-1.png" width="672" /></p>
+<pre class="r"><code>mat &lt;- collect_predictions(films_final) %&gt;% 
+  janitor::clean_names()   %&gt;%
+  conf_mat(pred_class, listed_in)   
+
+mat$table %&gt;% 
+  data.frame()  %&gt;% 
+  mutate(Prediction = 
+             str_replace(Prediction, 
+                         pattern = &quot; &amp; Family Movies&quot;,
+                         &quot;\n&amp; Family \nMovies&quot;),
+         Truth = 
+             str_replace(Truth, 
+                         pattern = &quot; &amp; Family Movies&quot;,
+                         &quot;\n&amp; Family \nMovies&quot;)) %&gt;% 
+  
+  ggplot(aes(Prediction, Truth, fill = Freq))  +
+  geom_bin2d(bins = 100, color = &quot;black&quot;) +
+  geom_text(aes(label = Freq), size = 10) +
+  scale_fill_continuous(type = &quot;viridis&quot;)  +
+  labs(x = &quot;Predicted class&quot;, y = &quot;True class&quot;, 
+       fill = &quot;Frequency&quot;) +
+  theme(legend.position = &quot;top&quot;) +
+  coord_fixed() +
+  guides(fill = guide_colourbar(barwidth = 15), 
+         text  = element_text(size = 10)) </code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-23-1.png" width="960" /></p>
 </div>
 </div>
