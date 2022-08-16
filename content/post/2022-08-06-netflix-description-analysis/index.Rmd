@@ -33,7 +33,7 @@ For this very introductory tutorial we will analyse the description of **Netflix
 
 -   `textrecipes` for additional recipes step for text data
 
-## Importing the pacakges
+## Importing the packages
 
 ```{r message=FALSE, warning=FALSE}
 library(tidyverse)
@@ -306,7 +306,7 @@ films_juice_pca <-
 Looking at the **PCA** we can see that the first component divides quite well the Documentary and the Children & Family Movies while the second component divides Horror movies from the other two category.
 
 ```{r}
-films_juice_pca %>% 
+p <- films_juice_pca %>% 
   ggplot(aes(PC01, PC02, fill = listed_in)) +
   geom_point(shape = 21, size = 8) +
   scale_fill_ipsum(guide = 
@@ -317,6 +317,7 @@ films_juice_pca %>%
        y = "Principal component 2 (PC02)") +
   theme(legend.position = "top",
         text = element_text(size = 15)) 
+plotly::ggplotly(p)
 ```
 
 ```{r}
@@ -572,6 +573,6 @@ mat$table %>%
          text  = element_text(size = 10)) 
 ```
 
-# End 
+# End
 
 We have made through this analysis. We have learn that text data are very sparse, linear models like PCA and linear SVM works very well with those type of data.
