@@ -1,13 +1,13 @@
 ---
-title: Netflix description analysis
-author: Emanuel Michele Soda
-date: '2022-08-06'
-slug: netflix-description-analysis
+title: "Netflix description analysis"
+author: "Emanuel Michele Soda"
+date: "2022-08-06"
+slug: "netflix-description-analysis"
 categories: []
 tags:
-  - netflix
-  - analysis
-editor_options: 
+- netflix
+- analysis
+editor_options:
   chunk_output_type: console
 ---
 
@@ -15,7 +15,7 @@ editor_options:
 
 ## NPL a super brief introduction
 
-In this post we are going to have a look to what is called **Natural Language Processing** also known as **NLP**. First of all let's define what is NLP. According to [Wikipedia](https://en.wikipedia.org/wiki/Natural_language_processing):
+In this post we are going to have a look at what is called **Natural Language Processing** also known as **NLP**. First of all let's define what is NLP. According to [Wikipedia](https://en.wikipedia.org/wiki/Natural_language_processing):
 
 > ***Natural language processing** (**NLP**) is a subfield of [linguistics](https://en.wikipedia.org/wiki/Linguistics "Linguistics"), [computer science](https://en.wikipedia.org/wiki/Computer_science "Computer science"), and [artificial intelligence](https://en.wikipedia.org/wiki/Artificial_intelligence "Artificial intelligence") concerned with the interactions between computers and human language, in particular how to program computers to process and analyze large amounts of [natural language](https://en.wikipedia.org/wiki/Natural_language "Natural language") data. The goal is a computer capable of "understanding" the contents of documents, including the [contextual](https://en.wikipedia.org/wiki/Context_(language_use) "Context (language use)") nuances of the language within them. The technology can then accurately extract information and insights contained in the documents as well as categorize and organize the documents themselves.*
 
@@ -25,13 +25,13 @@ For this very introductory tutorial we will analyse the description of **Netflix
 
 [^1]: More information can be found here [Netflix Shows](https://github.com/rfordatascience/tidytuesday/tree/master/data/2021/2021-04-20)
 
--   `tidyverse` for the data manipulation
+-   `tidyverse` for  data manipulation
 
--   `tidymodels` for the modelling
+-   `tidymodels` for  modelling
 
--   `tidytext` for the analysis of the text data
+-   `tidytext` for the analysis of  text data
 
--   `textrecipes` for additional recipes step for text data
+-   `textrecipes` for additional text data recipes step 
 
 ## Importing the packages
 
@@ -56,7 +56,7 @@ The data is in *.csv* in order to read it we can use the `readr::read_csv()` fun
 netflix_titles <- readr::read_csv(path)
 ```
 
-In order to have a look to the data we can use a very handy function from the `dplyr` which is `glimpse()`.
+In order to have a look at the data we can use a very handy function from the `dplyr` which is `glimpse()`.
 
 ```{r}
 dplyr::glimpse(netflix_titles)
@@ -137,7 +137,7 @@ netflix_films %>%
     
 ```
 
-As can be seen the number of observations for each category is a bit different. We can ask ourself if the dataset is balanced or not. In order to answer this question we can use the **Shannon Equitability Index which is a popular index to assess diversity. It is computed as follows:**
+As can be seen the number of observations for each category is a bit different. We can ask ourselfs whether the dataset is balanced or not. In order to answer this question we can use the **Shannon Equitability Index which is a popular index to assess diversity. It is computed as follows:**
 
 $$
 E_h=- \frac{\sum _{i=1}^{R}p_{i}\ln p_{i}}{\ln S}
@@ -463,7 +463,7 @@ sv_film_res_metrics %>%
                                "#679186", "#fdebd3"))
 ```
 
-Using the `vip` package we can compute what are the features that influence the most our prediction. As we could expect *documentary* is the most important word but other word seems very interesting like:
+Using the `vip` package we can compute what are the features that influence the most our prediction. As we could expect *documentary* is the most important word but other word seems to be very useful in the classification. Examples are:
 
 -   ***evil***
 
@@ -575,4 +575,4 @@ mat$table %>%
 
 # End
 
-We have made through this analysis. We have learn that text data are very sparse, linear models like PCA and linear SVM works very well with those type of data.
+We have made through this analysis. In doing so, we have learnt that text data are very sparse, but linear models like PCA and linear SVM work very well with those type of data.
