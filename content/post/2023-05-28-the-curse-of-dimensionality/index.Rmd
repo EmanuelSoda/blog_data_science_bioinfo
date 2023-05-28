@@ -1,0 +1,21 @@
+---
+title: The Curse of Dimensionality
+author: R package build
+date: '2023-05-28'
+slug: the-curse-of-dimensionality
+tags:
+- dimensionality
+- analysis
+editor_options:
+  chunk_output_type: console
+---
+```{r}
+library(tidyverse)
+library(keras)
+library(tidymodels)
+```
+
+```{r}
+mnist <- keras::dataset_mnist()
+```
+
