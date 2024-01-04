@@ -11,27 +11,41 @@ tags: []
 
 <div id="introduction" class="section level1">
 <h1>Introduction</h1>
-<p>The Fibonacci sequence, with its simple yet profound pattern, has captivated mathematicians for centuries. But when we venture beyond and explore its extension, the Tribonacci sequence, we stumble upon even more intriguing puzzles. In this post, we dive into a challenging riddle: finding the smallest sum of starting whole numbers a, b, and c in a Tribonacci sequence that includes the year 2024. Our approach is a straightforward, yet effective, brute-force method.</p>
+<p>The Fibonacci sequence, with its simple yet profound pattern, has captivated mathematicians for centuries. But when we venture beyond and explore its extension, the Tribonacci sequence, we stumble upon even more intriguing puzzles. In this post, we dive into a challenging riddle: finding the smallest sum of starting whole numbers a, b, and c in a Tribonacci sequence that includes the year <em>2024</em>. Our approach is a straightforward, yet effective, brute-force method.</p>
 </div>
 <div id="understanding-the-tribonacci-sequence" class="section level1">
 <h1>Understanding the Tribonacci Sequence</h1>
 <p>Similar to the Fibonacci sequence, the Tribonacci sequence starts with a set of numbers and each subsequent number is the sum of the three preceding ones. The complexity and possibilities increase as we consider three starting numbers instead of two.</p>
+<p>Given <span class="math inline">\(a,b,c \in N\)</span> the mathematical formulation it the following:</p>
+<p><span class="math display">\[
+\begin{equation*}
+Trib_n = \begin{cases}
+a \;\;\; if \;\; n == 1 \\
+b \;\;\; if \;\; n == 2 \\
+c \;\;\; if \;\; n == 3 \\
+Trib_{n-1} + Trib_{n-2} + Trib_{n-3} \;\;\; if \;\; n &gt; 3
+\end{cases}
+\end{equation*}
+\]</span></p>
 </div>
 <div id="the-riddle" class="section level1">
 <h1>The Riddle:</h1>
 <blockquote>
-<p><em>The Fibonacci sequence begins with the numbers 1 and 1,2 with each new term in the sequence equal to the sum of the preceding two. The first few numbers of the Fibonacci sequence are 1, 1, 2, 3, 5, 8, 13, 21, 34, 55 and so on.</em></p>
+<p><em>The Fibonacci sequence begins with the numbers 1 and 1, 2 with each new term in the sequence equal to the sum of the preceding two. The first few numbers of the Fibonacci sequence are 1, 1, 2, 3, 5, 8, 13, 21, 34, 55 and so on.</em></p>
 <p><em>One can also make variations of the Fibonacci sequence by starting with a different pair of numbers. For example, the sequence that starts with 1 and 3 is 1, 3, 4, 7, 11, 18, 29, 47, 76 and so on. Generalizing further, a “tribonacci” sequence starts with three whole numbers, with each new term equal to the sum of the preceding three.</em></p>
 <p><em>Many tribonacci sequences include the number 2023. For example, if you start with 23, 1000 and 1000, then the very next term will be 2023. Your challenge is to find starting whole numbers a, b and c so that 2023 is somewhere in their tribonacci sequence, a ≤ b ≤ c, and the sum a + b + c is as small as possible.</em></p>
 </blockquote>
 <p>Our quest is to discover three starting numbers, a ≤ b ≤ c, that not only generate a sequence containing the number 2024 but also have the smallest possible sum.</p>
 </div>
 <div id="our-brute-force-approach" class="section level1">
-<h1>Our Brute Force Approach:</h1>
-<p>We chose a brute-force approach for its simplicity and directness. Here’s how we tackled the problem: Defining the Tribonacci Function: We crafted a function tribonacci to generate the sequence from any three starting numbers.</p>
-<p>Creating a Comprehensive Search Algorithm: Using minimum_tribonacci, we systematically searched through a predefined range of starting numbers.</p>
-<p>Comprehensive Iteration: Leveraging itertools.product, we exhaustively examined combinations for a, b, and c, adhering to the condition a ≤ b ≤ c.</p>
-<p>Sorting for Efficiency: We sorted the combinations by the sum of a, b, and c to prioritize finding the smallest sum that fits the riddle’s requirements.</p>
+<h1>Our Brute Force Approach</h1>
+<p>We chose a brute-force approach for its simplicity and directness. Here’s how we tackled the problem:</p>
+<ul>
+<li><p><strong>Defining the Tribonacci Function</strong>: We crafted a function <code>tribonacci()</code> to generate the sequence from any three starting numbers.</p></li>
+<li><p><strong>Creating a Comprehensive Search Algorithm</strong>: Using <code>minimum_tribonacci()</code>, we systematically searched through a predefined range of starting numbers.</p></li>
+<li><p><strong>Comprehensive Iteration</strong>: Leveraging <code>itertools.product()</code>, we exhaustively examined combinations for a, b, and c, adhering to the condition a ≤ b ≤ c.</p></li>
+<li><p><strong>Sorting for Efficiency</strong>: We sorted the combinations by the sum of a, b, and c to prioritize finding the smallest sum that fits the riddle’s requirements.</p></li>
+</ul>
 <p>While this brute-force method guarantees a thorough search, it is computationally intensive and may not be the most efficient for larger sequences or ranges.</p>
 <pre class="python"><code>import pandas as pd
 from itertools import product
@@ -125,21 +139,13 @@ df_tribo = pd.DataFrame(list(product(a,b,c)), columns=[&#39;a&#39;, &#39;b&#39;,
 df_tribo = df_tribo.query(&#39;a &lt;= b &lt;= c&#39;)
 df_tribo[&#39;sum&#39;] = df_tribo[&#39;a&#39;] + df_tribo[&#39;b&#39;] + df_tribo[&#39;c&#39;]
 df_tribo = df_tribo.sort_values(&#39;sum&#39;).reset_index(drop=True)
-df_tribo</code></pre>
-<pre><code>##         a   b   c  sum
-## 0       1   1   1    3
-## 1       1   1   2    4
-## 2       1   1   3    5
-## 3       1   2   2    5
-## 4       1   2   3    6
-## ...    ..  ..  ..  ...
-## 20820  48  48  48  144
-## 20821  47  49  49  145
-## 20822  48  48  49  145
-## 20823  48  49  49  146
-## 20824  49  49  49  147
-## 
-## [20825 rows x 4 columns]</code></pre>
+df_tribo.head(5)</code></pre>
+<pre><code>##    a  b  c  sum
+## 0  1  1  1    3
+## 1  1  1  2    4
+## 2  1  1  3    5
+## 3  1  2  2    5
+## 4  1  2  3    6</code></pre>
 </div>
 <div id="results-and-reflections" class="section level1">
 <h1>Results and Reflections</h1>
