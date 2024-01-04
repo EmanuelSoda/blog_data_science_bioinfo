@@ -133,7 +133,7 @@ b = [x for x in range(1, 50)]
 c = [x for x in range(1, 50)] 
 df_tribo = pd.DataFrame(list(product(a,b,c)), columns=['a', 'b','c'])
 
-df_tribo = df_tribo.query('a <= b <= c').reset_index(drop=True)
+df_tribo = df_tribo.query('a <= b <= c')
 df_tribo['sum'] = df_tribo['a'] + df_tribo['b'] + df_tribo['c']
 df_tribo = df_tribo.sort_values('sum').reset_index(drop=True)
 df_tribo
@@ -142,10 +142,11 @@ df_tribo
 # Results and Reflections
 
 ```{python Find minimum}
-minimum_tribonacci(df_tribo, 2024)
+minimum = minimum_tribonacci(df_tribo, 2024)
+minimum
 ```
 
-Our brute-force method successfully identified `[3, 4, 5]` as the number with the minimum sum that contain 2024 in their tribonacci sequence, proving its effectiveness. However, it's important to note that this approach, while straightforward, may not always be the most efficient, especially for problems with larger scopes. It highlights the trade-off between the simplicity of implementation and computational efficiency.
+Our brute-force method successfully identified `[3, 4, 20]` as the number with the minimum sum that contain 2024 in their tribonacci sequence, proving its effectiveness. However, it's important to note that this approach, while straightforward, may not always be the most efficient, especially for problems with larger scopes. It highlights the trade-off between the simplicity of implementation and computational efficiency.
 
 # Conclusion
 
