@@ -1,0 +1,145 @@
+---
+title: ' Solving the Tribonacci Riddle: Finding 2024 in the Sequence'
+author: "Package Build"
+date: "2024-01-04"
+slug: "solving-the-tribonacci-riddle-finding-2024-in-the-sequence"
+categories: []
+tags: []
+---
+
+
+
+<div id="introduction" class="section level1">
+<h1>Introduction</h1>
+<p>The Fibonacci sequence, with its simple yet profound pattern, has captivated mathematicians for centuries. But when we venture beyond and explore its extension, the Tribonacci sequence, we stumble upon even more intriguing puzzles. In this post, we dive into a challenging riddle: finding the smallest sum of starting whole numbers a, b, and c in a Tribonacci sequence that includes the year 2024. Our approach is a straightforward, yet effective, brute-force method.</p>
+</div>
+<div id="understanding-the-tribonacci-sequence" class="section level1">
+<h1>Understanding the Tribonacci Sequence</h1>
+<p>Similar to the Fibonacci sequence, the Tribonacci sequence starts with a set of numbers and each subsequent number is the sum of the three preceding ones. The complexity and possibilities increase as we consider three starting numbers instead of two.</p>
+<p>The Riddle:
+Our quest is to discover three starting numbers, a ≤ b ≤ c, that not only generate a sequence containing the number 2024 but also have the smallest possible sum.</p>
+<p>Our Brute Force Approach:</p>
+<p>We chose a brute-force approach for its simplicity and directness. Here’s how we tackled the problem:</p>
+<p>Defining the Tribonacci Function: We crafted a function tribonacci to generate the sequence from any three starting numbers.</p>
+<p>Creating a Comprehensive Search Algorithm: Using minimum_tribonacci, we systematically searched through a predefined range of starting numbers.</p>
+<p>Comprehensive Iteration: Leveraging itertools.product, we exhaustively examined combinations for a, b, and c, adhering to the condition a ≤ b ≤ c.</p>
+<p>Sorting for Efficiency: We sorted the combinations by the sum of a, b, and c to prioritize finding the smallest sum that fits the riddle’s requirements.</p>
+<p>While this brute-force method guarantees a thorough search, it is computationally intensive and may not be the most efficient for larger sequences or ranges.</p>
+<pre class="python"><code>import pandas as pd
+from itertools import product
+from typing import Union, List</code></pre>
+<pre class="python"><code>def tribonacci(a: int, b: int, c: int, year: int) -&gt; Union[List[int], int]:
+    &quot;&quot;&quot;
+    Generates a Tribonacci sequence starting with three specified initial terms.
+
+    The Tribonacci sequence is similar to the Fibonacci sequence, but it starts 
+    with three initial terms and each subsequent term is the sum of the preceding 
+    three terms. This function continues to generate the sequence until a specified 
+    limit (the &#39;year&#39; parameter) is reached or exceeded.
+
+    Parameters:
+    a (int): The first term of the Tribonacci sequence.
+    b (int): The second term of the Tribonacci sequence.
+    c (int): The third term of the Tribonacci sequence.
+    year (int): A numeric threshold that limits the length of the sequence. 
+                The function generates Tribonacci numbers until the sum of 
+                the last three numbers is less than or equal to this threshold.
+
+    Returns:
+    list[int] | int: Returns a list containing the Tribonacci sequence if the 
+                     initial terms are in non-decreasing order (a &lt;= b &lt;= c). 
+                     If the initial terms do not meet this condition, it returns 0.
+
+    Example:
+    tribonacci(1, 1, 2, 10)
+    [1, 1, 2, 4, 7]
+
+    tribonacci(3, 2, 1, 10)
+    0
+    
+    Raises:
+    TypeError: If any of the inputs (a, b, c, year) are not integers.
+    &quot;&quot;&quot;
+    try:
+        if  a &lt;= b &lt;= c and (a + b + c != 0):
+            tribonacci_n = 0
+            tribonacci_sequence=[a,b,c] 
+            while tribonacci_n &lt; year:
+                tribonacci_n = sum(tribonacci_sequence[-3:])
+                tribonacci_sequence.append(tribonacci_n)
+            return tribonacci_sequence
+        else:
+            return 0
+    except TypeError:
+        print(&#39;Error: a, b, and c must be integers.&#39;)
+
+
+def minimum_tribonacci(dataframe: pd.DataFrame, year: int) -&gt; list:
+    &quot;&quot;&quot;
+    Searches through a DataFrame for the first row where the Tribonacci sequence 
+    (generated from the first three values of the row) contains a specified value (&#39;year&#39;).
+
+    This function iterates through each row of the provided DataFrame, using the first three 
+    values of each row as the initial terms for a Tribonacci sequence. It then generates 
+    the sequence up to the specified &#39;year&#39;. If &#39;year&#39; is found within the generated 
+    Tribonacci sequence, the function returns the initial three values (a, b, c) from 
+    that row as a list.
+
+    Parameters:
+    dataframe (pd.DataFrame): A DataFrame with at least three columns. The first three 
+                              columns should contain numeric values to generate the 
+                              Tribonacci sequence.
+    year (int): The target value to search for within the Tribonacci sequences.
+
+    Returns:
+    list: A list containing the first three values (a, b, c) of the row from the DataFrame 
+          where the &#39;year&#39; is found in the generated Tribonacci sequence. If no sequence 
+          contains the &#39;year&#39;, the function returns None.
+
+    Example:
+    df = pd.DataFrame([[3, 4, 20], [3, 4, 41], [1, 16, 32]])
+    minimum_tribonacci(df, 2024)
+    [3, 4, 20]
+    &quot;&quot;&quot;
+
+    for index in dataframe.index:
+        a = dataframe.iloc[index, 0]
+        b = dataframe.iloc[index, 1]
+        c = dataframe.iloc[index, 2]
+        trib = tribonacci(a, b, c, year)
+        if year in trib:
+            return [a, b, c]</code></pre>
+<pre class="python"><code>a = [x for x in range(1, 50)] 
+b = [x for x in range(1, 50)] 
+c = [x for x in range(1, 50)] 
+df_tribo = pd.DataFrame(list(product(a,b,c)), columns=[&#39;a&#39;, &#39;b&#39;,&#39;c&#39;])
+
+df_tribo = df_tribo.query(&#39;a &lt;= b &lt;= c&#39;).reset_index(drop=True)
+df_tribo[&#39;sum&#39;] = df_tribo[&#39;a&#39;] + df_tribo[&#39;b&#39;] + df_tribo[&#39;c&#39;]
+df_tribo = df_tribo.sort_values(&#39;sum&#39;).reset_index(drop=True)
+df_tribo</code></pre>
+<pre><code>##         a   b   c  sum
+## 0       1   1   1    3
+## 1       1   1   2    4
+## 2       1   1   3    5
+## 3       1   2   2    5
+## 4       1   2   3    6
+## ...    ..  ..  ..  ...
+## 20820  48  48  48  144
+## 20821  47  49  49  145
+## 20822  48  48  49  145
+## 20823  48  49  49  146
+## 20824  49  49  49  147
+## 
+## [20825 rows x 4 columns]</code></pre>
+</div>
+<div id="results-and-reflections" class="section level1">
+<h1>Results and Reflections</h1>
+<pre class="python"><code>minimum_tribonacci(df_tribo, 2024)</code></pre>
+<pre><code>## [3, 4, 20]</code></pre>
+<p>Our brute-force method successfully identified [3, 4, 5] as the number with the minimum sum that contain 2024 in their tribonacci sequence, proving its effectiveness. However, it’s important to note that this approach, while straightforward, may not always be the most efficient, especially for problems with larger scopes. It highlights the trade-off between the simplicity of implementation and computational efficiency.</p>
+</div>
+<div id="conclusion" class="section level1">
+<h1>Conclusion</h1>
+<p>Exploring the Tribonacci sequence through a brute-force lens offers valuable lessons in both mathematics and computational strategies. While brute-force methods provide clear-cut solutions, they also open discussions about efficiency and optimization in problem-solving. As we continue to delve into the world of numbers, these insights become stepping stones for more sophisticated and nuanced approaches to mathematical puzzles.</p>
+</div>
