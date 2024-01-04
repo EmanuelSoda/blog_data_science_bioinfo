@@ -108,10 +108,33 @@ tibble(goat_on_roof = as.factor(goat_on_roof)) %>%
     group_by(goat_on_roof) %>% 
     count(goat_on_roof, sort = TRUE) %>% 
     ggplot(aes(goat_on_roof, n))+
-    geom_col(fill = "#488286", color ='black') +
+    geom_col(fill = "#488286") +
     scale_y_continuous(labels = scales::comma) +
     labs(x= "# of Goat on the roof", y= "Number of positive simulation")
   
+```
+
+Another significant advantage of using simulation lies in its flexibility. We can easily alter the number of goats and floors and observe how these changes affect the outcome. Intriguingly, our simulations reveal that even when the proportion of floors to goats remains constant, increasing their numbers leads to a higher likelihood of goats ending up on the roof. This finding is thought-provoking. It suggests that in situations where resources are seemingly sufficient, the sheer number of individuals involved can still lead to resource shortages without effective collaboration. This mirrors a real-world scenario: even in the presence of ample resources, the lack of cooperation can result in many individuals being left without what they need. It highlights the importance of collaboration, especially in large groups, to ensure equitable resource distribution.
+
+```{r}
+multi_sim <- function(number_goat_floar){
+    goat_on_roof <- replicate(1e+05, count_got_on_roof(x=number_goat_floar))
+    res <- tibble(goat_on_roof = as.factor(goat_on_roof),
+                  number_goat_floar = as.factor(number_goat_floar))
+    return(res)
+}
+multi_goat <- map(seq(10, 100, 10), multi_sim)
+multi_goat <- reduce(multi_goat, bind_rows) 
+
+multi_goat %>% 
+    group_by(goat_on_roof, number_goat_floar) %>% 
+    count(sort = TRUE) %>% 
+    ggplot(aes(goat_on_roof, n, fill = number_goat_floar))+
+    geom_col(position = position_dodge()) +
+    scale_y_continuous(labels = scales::comma)  +
+    scale_fill_brewer(palette = "Set3") +
+    labs(x = "# of goat on the roof", y = "Number of positive simulation",
+         fill = "# of goats \n and floors")
 ```
 
 ### **Conclusion**
