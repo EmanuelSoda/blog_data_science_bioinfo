@@ -6,23 +6,28 @@ slug: "solving-the-tribonacci-riddle-finding-2024-in-the-sequence"
 categories: []
 tags: []
 ---
-# Introduction 
+
+# Introduction
+
 The Fibonacci sequence, with its simple yet profound pattern, has captivated mathematicians for centuries. But when we venture beyond and explore its extension, the Tribonacci sequence, we stumble upon even more intriguing puzzles. In this post, we dive into a challenging riddle: finding the smallest sum of starting whole numbers a, b, and c in a Tribonacci sequence that includes the year 2024. Our approach is a straightforward, yet effective, brute-force method.
 
 # Understanding the Tribonacci Sequence
+
 Similar to the Fibonacci sequence, the Tribonacci sequence starts with a set of numbers and each subsequent number is the sum of the three preceding ones. The complexity and possibilities increase as we consider three starting numbers instead of two.
 
+# The Riddle:
 
+> *The Fibonacci sequence begins with the numbers 1 and 1,2 with each new term in the sequence equal to the sum of the preceding two. The first few numbers of the Fibonacci sequence are 1, 1, 2, 3, 5, 8, 13, 21, 34, 55 and so on.*
+>
+> *One can also make variations of the Fibonacci sequence by starting with a different pair of numbers. For example, the sequence that starts with 1 and 3 is 1, 3, 4, 7, 11, 18, 29, 47, 76 and so on. Generalizing further, a “tribonacci” sequence starts with three whole numbers, with each new term equal to the sum of the preceding three.*
+>
+> *Many tribonacci sequences include the number 2023. For example, if you start with 23, 1000 and 1000, then the very next term will be 2023. Your challenge is to find starting whole numbers a, b and c so that 2023 is somewhere in their tribonacci sequence, a ≤ b ≤ c, and the sum a + b + c is as small as possible.*
+>
+> *Our quest is to discover three starting numbers, a ≤ b ≤ c, that not only generate a sequence containing the number 2024 but also have the smallest possible sum.*
 
-The Riddle:
-Our quest is to discover three starting numbers, a ≤ b ≤ c, that not only generate a sequence containing the number 2024 but also have the smallest possible sum.
+# Our Brute Force Approach:
 
-
-Our Brute Force Approach:
-
-We chose a brute-force approach for its simplicity and directness. Here’s how we tackled the problem:
-
-Defining the Tribonacci Function: We crafted a function tribonacci to generate the sequence from any three starting numbers.
+We chose a brute-force approach for its simplicity and directness. Here’s how we tackled the problem: Defining the Tribonacci Function: We crafted a function tribonacci to generate the sequence from any three starting numbers.
 
 Creating a Comprehensive Search Algorithm: Using minimum_tribonacci, we systematically searched through a predefined range of starting numbers.
 
@@ -32,13 +37,11 @@ Sorting for Efficiency: We sorted the combinations by the sum of a, b, and c to 
 
 While this brute-force method guarantees a thorough search, it is computationally intensive and may not be the most efficient for larger sequences or ranges.
 
-
 ```{python Import packages}
 import pandas as pd
 from itertools import product
 from typing import Union, List
 ```
-
 
 ```{python Function Definition}
 def tribonacci(a: int, b: int, c: int, year: int) -> Union[List[int], int]:
@@ -124,7 +127,6 @@ def minimum_tribonacci(dataframe: pd.DataFrame, year: int) -> list:
             return [a, b, c]
 ```
 
-
 ```{python Dataframe creation}
 a = [x for x in range(1, 50)] 
 b = [x for x in range(1, 50)] 
@@ -136,14 +138,14 @@ df_tribo['sum'] = df_tribo['a'] + df_tribo['b'] + df_tribo['c']
 df_tribo = df_tribo.sort_values('sum').reset_index(drop=True)
 df_tribo
 ```
+
 # Results and Reflections
 
 ```{python Find minimum}
 minimum_tribonacci(df_tribo, 2024)
 ```
 
-Our brute-force method successfully identified [3, 4, 5] as the number with the minimum sum that contain 2024 in their tribonacci sequence, proving its effectiveness. However, it's important to note that this approach, while straightforward, may not always be the most efficient, especially for problems with larger scopes. It highlights the trade-off between the simplicity of implementation and computational efficiency.
-
+Our brute-force method successfully identified `[3, 4, 5]` as the number with the minimum sum that contain 2024 in their tribonacci sequence, proving its effectiveness. However, it's important to note that this approach, while straightforward, may not always be the most efficient, especially for problems with larger scopes. It highlights the trade-off between the simplicity of implementation and computational efficiency.
 
 # Conclusion
 

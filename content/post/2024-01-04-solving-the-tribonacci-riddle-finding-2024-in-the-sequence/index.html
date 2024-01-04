@@ -16,11 +16,19 @@ tags: []
 <div id="understanding-the-tribonacci-sequence" class="section level1">
 <h1>Understanding the Tribonacci Sequence</h1>
 <p>Similar to the Fibonacci sequence, the Tribonacci sequence starts with a set of numbers and each subsequent number is the sum of the three preceding ones. The complexity and possibilities increase as we consider three starting numbers instead of two.</p>
-<p>The Riddle:
-Our quest is to discover three starting numbers, a ≤ b ≤ c, that not only generate a sequence containing the number 2024 but also have the smallest possible sum.</p>
-<p>Our Brute Force Approach:</p>
-<p>We chose a brute-force approach for its simplicity and directness. Here’s how we tackled the problem:</p>
-<p>Defining the Tribonacci Function: We crafted a function tribonacci to generate the sequence from any three starting numbers.</p>
+</div>
+<div id="the-riddle" class="section level1">
+<h1>The Riddle:</h1>
+<blockquote>
+<p><em>The Fibonacci sequence begins with the numbers 1 and 1,2 with each new term in the sequence equal to the sum of the preceding two. The first few numbers of the Fibonacci sequence are 1, 1, 2, 3, 5, 8, 13, 21, 34, 55 and so on.</em></p>
+<p><em>One can also make variations of the Fibonacci sequence by starting with a different pair of numbers. For example, the sequence that starts with 1 and 3 is 1, 3, 4, 7, 11, 18, 29, 47, 76 and so on. Generalizing further, a “tribonacci” sequence starts with three whole numbers, with each new term equal to the sum of the preceding three.</em></p>
+<p><em>Many tribonacci sequences include the number 2023. For example, if you start with 23, 1000 and 1000, then the very next term will be 2023. Your challenge is to find starting whole numbers a, b and c so that 2023 is somewhere in their tribonacci sequence, a ≤ b ≤ c, and the sum a + b + c is as small as possible.</em></p>
+<p><em>Our quest is to discover three starting numbers, a ≤ b ≤ c, that not only generate a sequence containing the number 2024 but also have the smallest possible sum.</em></p>
+</blockquote>
+</div>
+<div id="our-brute-force-approach" class="section level1">
+<h1>Our Brute Force Approach:</h1>
+<p>We chose a brute-force approach for its simplicity and directness. Here’s how we tackled the problem: Defining the Tribonacci Function: We crafted a function tribonacci to generate the sequence from any three starting numbers.</p>
 <p>Creating a Comprehensive Search Algorithm: Using minimum_tribonacci, we systematically searched through a predefined range of starting numbers.</p>
 <p>Comprehensive Iteration: Leveraging itertools.product, we exhaustively examined combinations for a, b, and c, adhering to the condition a ≤ b ≤ c.</p>
 <p>Sorting for Efficiency: We sorted the combinations by the sum of a, b, and c to prioritize finding the smallest sum that fits the riddle’s requirements.</p>
@@ -137,7 +145,7 @@ df_tribo</code></pre>
 <h1>Results and Reflections</h1>
 <pre class="python"><code>minimum_tribonacci(df_tribo, 2024)</code></pre>
 <pre><code>## [3, 4, 20]</code></pre>
-<p>Our brute-force method successfully identified [3, 4, 5] as the number with the minimum sum that contain 2024 in their tribonacci sequence, proving its effectiveness. However, it’s important to note that this approach, while straightforward, may not always be the most efficient, especially for problems with larger scopes. It highlights the trade-off between the simplicity of implementation and computational efficiency.</p>
+<p>Our brute-force method successfully identified <code>[3, 4, 5]</code> as the number with the minimum sum that contain 2024 in their tribonacci sequence, proving its effectiveness. However, it’s important to note that this approach, while straightforward, may not always be the most efficient, especially for problems with larger scopes. It highlights the trade-off between the simplicity of implementation and computational efficiency.</p>
 </div>
 <div id="conclusion" class="section level1">
 <h1>Conclusion</h1>
