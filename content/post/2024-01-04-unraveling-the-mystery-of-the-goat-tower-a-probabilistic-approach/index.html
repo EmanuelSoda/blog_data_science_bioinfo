@@ -80,14 +80,14 @@ number_goat_floar &lt;- 10
 goat_on_roof &lt;- replicate(simulations, count_got_on_roof(x=number_goat_floar))
 probability &lt;- sum(goat_on_roof == 0) / length(goat_on_roof) 
 probability</code></pre>
-<pre><code>## [1] 0.235613</code></pre>
-<p>This result indicates that there is a probability, precisely calculated as <strong><code>scales::percent(probability)</code></strong>, that no goats will end up on the roof.</p>
+<pre><code>## [1] 0.235317</code></pre>
+<p>This result indicates that there is a probability, precisely calculated as 24%, that no goats will end up on the roof.</p>
 </div>
 <div id="visual-representation" class="section level3">
 <h3><strong>Visual Representation</strong></h3>
 <p>The simulation approach offers a distinct advantage over traditional numerical methods. It not only determines the probability of none of the goats on the roof but also allows us to easily compute the average number of goats that end up on the roof. This calculation can be performed with the following simple steps:</p>
 <pre class="r"><code>mean(goat_on_roof)</code></pre>
-<pre><code>## [1] 1.330662</code></pre>
+<pre><code>## [1] 1.330666</code></pre>
 <p>We can visualize the distribution using <strong><code>ggplot</code></strong>:</p>
 <pre class="r"><code>tibble(goat_on_roof = as.factor(goat_on_roof)) %&gt;% 
     group_by(goat_on_roof) %&gt;% 

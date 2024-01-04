@@ -91,7 +91,7 @@ probability <- sum(goat_on_roof == 0) / length(goat_on_roof)
 probability
 ```
 
-This result indicates that there is a probability, precisely calculated as **`scales::percent(probability)`**, that no goats will end up on the roof.
+This result indicates that there is a probability, precisely calculated as `r scales::percent(probability)`, that no goats will end up on the roof.
 
 ### **Visual Representation**
 
