@@ -123,6 +123,7 @@ multi_sim <- function(number_goat_floar){
                   number_goat_floar = as.factor(number_goat_floar))
     return(res)
 }
+
 multi_goat <- map(seq(10, 100, 10), multi_sim)
 multi_goat <- reduce(multi_goat, bind_rows) 
 
