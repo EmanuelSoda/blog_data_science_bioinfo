@@ -249,7 +249,7 @@ patchwork::wrap_plots(
         .f =  ~ extract_value(.x) %>% 
               ggplot(aes(x, y, fill = pixel_intensity)) +
     geom_tile() +
-    scale_fill_viridis_c(option = "inferno",) +
+    scale_fill_viridis_c(option = "inferno") +
     theme_void() +
     facet_wrap(vars(label), scales = "free")
         )

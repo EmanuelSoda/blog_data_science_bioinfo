@@ -1,0 +1,101 @@
+---
+title: Can You Fold All Your Socks?
+author: Package Build
+date: '2024-01-07'
+slug: can-you-fold-all-your-socks
+categories: []
+tags: []
+editor_options: 
+  chunk_output_type: console
+---
+
+In my laundry basket, I have 14 pairs of socks that I need to pair up. To do this, I use a chair that can fit nine socks, at most. I randomly draw one clean sock at a time from the basket. If its matching counterpart is not already on the chair, then I place it in one of the nine spots. But if its counterpart is already on the chair, then I remove it from the chair (making that spot once again unoccupied) and place the folded pair in my drawer.
+
+What is the probability I can fold all 14 pairs without ever running out of room on my chair?
+
+Extra credit: What if I change the number of pairs of socks I own, as well as the number of socks that can fit on my chair?
+```{r}
+library(tidyverse)
+
+simulate_folding <- function(n_pair_socks = 14L, n_chair = 9L) {
+    basket_socks <- rep(seq_len(n_pair_socks), 2L)
+    chair_socks <- rep(0L, n_chair)
+    
+    # this runs until we have empty spots on the chair and 
+    # we have enough socks to fill the chair
+    while (length(basket_socks) > 0 & length(which(chair_socks == 0)) > 0) {
+        # place socks on chair
+        nsocks_to_sample <- min(length(which(chair_socks == 0)), length(basket_socks))
+        socks <- sample(basket_socks, nsocks_to_sample)
+        chair_socks[chair_socks == 0] <- socks
+        
+        # remove socks in chair from total socks (basket)
+        basket_socks <- basket_socks[!basket_socks %in% chair_socks]
+        # Find duplicate socks on the chair
+        dup <- chair_socks[duplicated(chair_socks)]
+        
+        # remove socks from the chair if duplicate
+        chair_socks[which(chair_socks %in% dup)] <- 0L 
+    
+    }
+    # return number of unfolded fold 
+    return(tibble(basket_socks = length(basket_socks), 
+                  chair_socks = length(which(chair_socks == 0))
+                  )
+           )
+}
+
+simulations_tbl <- tibble(simulation = seq(1, 1e04)) %>% 
+    mutate(data = map(simulation, ~ simulate_folding()))  %>% 
+    unnest(data)
+
+simulations_tbl %>% 
+    #dplyr::filter(basket_socks == 0) %>% 
+    summarise(n_unfolded = mean(basket_socks == 0)*100) 
+```
+
+```{r} 
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+chair <- c(chair,sample(socks, length(which(chair == 0)), replace = FALSE))
+n_pair_socks <- 14 
+socks <- rep(seq_len(n_pair_socks), 2) 
+chair <- sample(socks,9)
+while (length(socks) > 0 & length(which(chair == 0)) > 0) { 
+    dup <- chair[duplicated(chair)] 
+    chair <-chair[!chair %in% dup]
+    socks <- socks[!socks %in% dup]
+    chair <- c(chair,sample(socks, 9-length(chair), replace = FALSE)) 
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
