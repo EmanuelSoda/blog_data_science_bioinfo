@@ -21,17 +21,17 @@ Many problems in statistics and data science share the same bottleneck: *we know
 
 The central idea behind MCMC is deceptively simple. Instead of drawing independent samples, we construct a random process that moves locally through a space of possible states. If the rules governing these moves are chosen carefully, the long-run fraction of time spent in each state matches the distribution we want. Global correctness emerges from local randomness.
 
-To make this intuition concrete, it helps to forget equations for a moment and think in terms of a story. What follows is a parable about an island kingdom, a reluctant planner, and a strangely effective travel rule. By the end, the logic of MCMC, and in particular the Metropolis algorithm, should feel natural rather than mysterious.
+To make this intuition concrete, it helps to forget equations for a moment and think in terms of a story. What follows is a parable about an island kingdom, a reluctant planner, and a strangely effective travel rule. By the end, the logic of MCMC, and in particular the ***Metropolis algorithm***, should feel natural rather than mysterious.
 
 The Island Kingdom
 
-Good King Markov ruled an unusual realm: an archipelago of ten islands arranged in a perfect ring. Each island was connected only to its two immediate neighbours. Crossing the open water through the middle of the ring was forbidden. The King, like many of his subjects, believed sea monsters lived there.
-
-The islands were not equal. Island 1 was the smallest. Island 2 had roughly twice the population. Island 3 had three times as many people as island 1, and so on, up to island 10, which was ten times as populous as the smallest. The numbering of the islands directly encoded their relative population sizes.
-
-The King had an obligation to his people. He was required to visit each island regularly, and everyone agreed on a fair rule: the King should visit islands in proportion to their population. Island 10 should see him ten times as often as island 1.
-
-There was, however, a problem. King Markov hated schedules. He refused to plan his travels in advance or keep records of past visits. He wanted a rule he could follow week by week, using only local information, that would nonetheless guarantee fairness in the long run.
+> Good King Markov ruled an unusual realm: an archipelago of ten islands arranged in a perfect ring. Each island was connected only to its two immediate neighbours. Crossing the open water through the middle of the ring was forbidden. The King, like many of his subjects, believed sea monsters lived there.
+>
+> The islands were not equal. Island 1 was the smallest. Island 2 had roughly twice the population. Island 3 had three times as many people as island 1, and so on, up to island 10, which was ten times as populous as the smallest. The numbering of the islands directly encoded their relative population sizes.
+>
+> The King had an obligation to his people. He was required to visit each island regularly, and everyone agreed on a fair rule: ***the King should visit islands in proportion to their population***. Island 10 should see him ten times as often as island 1.
+>
+> There was, however, a problem. King Markov hated schedules. He refused to plan his travels in advance or keep records of past visits. He wanted a rule he could follow week by week, using only local information, that would nonetheless guarantee fairness in the long run.
 
 ```{python Island, echo=FALSE}
 n = 10
@@ -77,21 +77,33 @@ plt.show()
 
 # The Constraint
 
-Two constraints defined the problem. First, the King could only move to neighbouring islands. Any solution requiring jumps across the archipelago was unacceptable.
+Two constraints defined the problem. First, the King could only move to **neighbouring islands**. Any solution requiring jumps across the archipelago was unacceptable.
 
-Second, the rule had to be memoryless. The King would not track how often he had visited each island in the past. Each week’s decision had to depend only on where he was now and what lay next to him.
+Second, the rule had to be **memoryless**. The King would not track how often he had visited each island in the past. Each week’s decision had to depend only on where he was now and what lay next to him.
 
-Rephrased in modern terms, the King needed a Markov process whose long-run behaviour matched a desired target distribution.
+Rephrased in modern terms, the ***King needed a Markov process*** whose long-run behaviour matched a desired target distribution.
 
 # Mr Metropolis’ Proposal
 
-Each week, the King does the following: 1. He flips a fair coin. Heads means he considers moving clockwise. Tails means counterclockwise. The nominated destination is the proposal island. 2. He compares populations using tokens. He counts seashells equal to the population of the proposal island, and stones equal to the population of his current island. 3. He decides whether to move. • If there are more shells than stones, he always moves. • If there are fewer shells than stones, he discards a number of stones equal to the number of shells, mixes shells and stones in a bag, and draws one at random. • If the object drawn is a shell, he moves. Otherwise, he stays put for another week.
+Each week, the King does the following:
+
+1.  He flips a fair coin. Heads means he considers moving clockwise. Tails means counterclockwise. The nominated destination is the proposal island.
+
+2.  He compares populations using tokens. He counts seashells equal to the population of the proposal island, and stones equal to the population of his current island.
+
+3.  He decides whether to move.
+
+    -   If there are more shells than stones, he always moves.
+
+    -   If there are fewer shells than stones, he discards a number of stones equal to the number of shells, mixes shells and stones in a bag, and draws one at random.
+
+    -   If the object drawn is a shell, he moves. Otherwise, he stays put for another week.
 
 No global planning. No bookkeeping. Just a local rule applied repeatedly.
 
-Simulating the King’s Travels
+# Simulating the King’s Travels
 
-Let us simulate the King’s movements over 10 weeks, starting from island 0
+Let us simulate the King’s movements over 10 weeks, starting from island 1
 
 ```{python Simulation, echo=TRUE}
 num_weels = 10
@@ -120,7 +132,7 @@ frame
 
 # What Happens in the Long Run
 
-If we run the simulation for 1.000.000 weeks and then we colour the islands by the number of weeks visited, a clear structure emerges: larger islands attract the King more often.
+If we run the simulation for $1.000.000$ weeks and then we colour the islands by the number of weeks visited, a clear structure emerges: larger islands attract the King more often.
 
 Each entry in counts records how many weeks the King spent on each island.
 

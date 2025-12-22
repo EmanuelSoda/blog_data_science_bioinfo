@@ -11,38 +11,45 @@ tags: []
 
 <div id="introduction" class="section level1">
 <h1>Introduction</h1>
-<p>Many problems in statistics and data science share the same bottleneck: we know the shape of a distribution we care about, but we cannot sample from it directly. The distribution may be known only up to a constant, live in a high-dimensional space, or arise implicitly from a complex model. This is exactly the setting in which Markov Chain Monte Carlo (MCMC) methods are used.</p>
+<p>Many problems in statistics and data science share the same bottleneck: <em>we know the shape of a distribution we care about, but we cannot sample from it directly</em>. The distribution may be known only up to a constant, live in a high-dimensional space, or arise implicitly from a complex model. This is exactly the setting in which Markov Chain Monte Carlo (<strong>MCMC</strong>) methods are used.</p>
 <p>The central idea behind MCMC is deceptively simple. Instead of drawing independent samples, we construct a random process that moves locally through a space of possible states. If the rules governing these moves are chosen carefully, the long-run fraction of time spent in each state matches the distribution we want. Global correctness emerges from local randomness.</p>
-<p>To make this intuition concrete, it helps to forget equations for a moment and think in terms of a story. What follows is a parable about an island kingdom, a reluctant planner, and a strangely effective travel rule. By the end, the logic of MCMC, and in particular the Metropolis algorithm, should feel natural rather than mysterious.</p>
+<p>To make this intuition concrete, it helps to forget equations for a moment and think in terms of a story. What follows is a parable about an island kingdom, a reluctant planner, and a strangely effective travel rule. By the end, the logic of MCMC, and in particular the <strong><em>Metropolis algorithm</em></strong>, should feel natural rather than mysterious.</p>
 <p>The Island Kingdom</p>
+<blockquote>
 <p>Good King Markov ruled an unusual realm: an archipelago of ten islands arranged in a perfect ring. Each island was connected only to its two immediate neighbours. Crossing the open water through the middle of the ring was forbidden. The King, like many of his subjects, believed sea monsters lived there.</p>
 <p>The islands were not equal. Island 1 was the smallest. Island 2 had roughly twice the population. Island 3 had three times as many people as island 1, and so on, up to island 10, which was ten times as populous as the smallest. The numbering of the islands directly encoded their relative population sizes.</p>
-<p>The King had an obligation to his people. He was required to visit each island regularly, and everyone agreed on a fair rule: the King should visit islands in proportion to their population. Island 10 should see him ten times as often as island 1.</p>
+<p>The King had an obligation to his people. He was required to visit each island regularly, and everyone agreed on a fair rule: <strong><em>the King should visit islands in proportion to their population</em></strong>. Island 10 should see him ten times as often as island 1.</p>
 <p>There was, however, a problem. King Markov hated schedules. He refused to plan his travels in advance or keep records of past visits. He wanted a rule he could follow week by week, using only local information, that would nonetheless guarantee fairness in the long run.</p>
+</blockquote>
 <pre><code>## (-89.98199256454937, 89.98199256454937)</code></pre>
 <pre><code>## (-89.98199256454937, 89.98199256454937)</code></pre>
 <pre><code>## (np.float64(-89.98199256454937), np.float64(89.98199256454937), np.float64(-89.98199256454937), np.float64(89.98199256454937))</code></pre>
-<p><img src="{{< blogdown/postref >}}index_files/figure-html/Island-1.png" width="960" />
-# The Constraint
-Two constraints defined the problem.
-First, the King could only move to neighbouring islands. Any solution requiring jumps across the archipelago was unacceptable.</p>
-<p>Second, the rule had to be memoryless. The King would not track how often he had visited each island in the past. Each week’s decision had to depend only on where he was now and what lay next to him.</p>
-<p>Rephrased in modern terms, the King needed a Markov process whose long-run behaviour matched a desired target distribution.</p>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/Island-1.png" width="960" /></p>
+</div>
+<div id="the-constraint" class="section level1">
+<h1>The Constraint</h1>
+<p>Two constraints defined the problem. First, the King could only move to <strong>neighbouring islands</strong>. Any solution requiring jumps across the archipelago was unacceptable.</p>
+<p>Second, the rule had to be <strong>memoryless</strong>. The King would not track how often he had visited each island in the past. Each week’s decision had to depend only on where he was now and what lay next to him.</p>
+<p>Rephrased in modern terms, the <strong><em>King needed a Markov process</em></strong> whose long-run behaviour matched a desired target distribution.</p>
 </div>
 <div id="mr-metropolis-proposal" class="section level1">
 <h1>Mr Metropolis’ Proposal</h1>
-<p>Each week, the King does the following:
-1. He flips a fair coin.
-Heads means he considers moving clockwise. Tails means counterclockwise. The nominated destination is the proposal island.
-2. He compares populations using tokens.
-He counts seashells equal to the population of the proposal island, and stones equal to the population of his current island.
-3. He decides whether to move.
-• If there are more shells than stones, he always moves.
-• If there are fewer shells than stones, he discards a number of stones equal to the number of shells, mixes shells and stones in a bag, and draws one at random.
-• If the object drawn is a shell, he moves. Otherwise, he stays put for another week.</p>
+<p>Each week, the King does the following:</p>
+<ol style="list-style-type: decimal">
+<li><p>He flips a fair coin. Heads means he considers moving clockwise. Tails means counterclockwise. The nominated destination is the proposal island.</p></li>
+<li><p>He compares populations using tokens. He counts seashells equal to the population of the proposal island, and stones equal to the population of his current island.</p></li>
+<li><p>He decides whether to move.</p>
+<ul>
+<li><p>If there are more shells than stones, he always moves.</p></li>
+<li><p>If there are fewer shells than stones, he discards a number of stones equal to the number of shells, mixes shells and stones in a bag, and draws one at random.</p></li>
+<li><p>If the object drawn is a shell, he moves. Otherwise, he stays put for another week.</p></li>
+</ul></li>
+</ol>
 <p>No global planning. No bookkeeping. Just a local rule applied repeatedly.</p>
-<p>Simulating the King’s Travels</p>
-<p>Let us simulate the King’s movements over 10 weeks, starting from island 0</p>
+</div>
+<div id="simulating-the-kings-travels" class="section level1">
+<h1>Simulating the King’s Travels</h1>
+<p>Let us simulate the King’s movements over 10 weeks, starting from island 1</p>
 <pre class="python"><code>num_weels = 10
 positions = np.zeros(num_weels, dtype=int)
 current_position = 0
@@ -67,13 +74,12 @@ frame = pd.DataFrame({&quot;island&quot;: unique + 1, &quot;weeks&quot;: counts}
 frame</code></pre>
 <pre><code>##    island  weeks
 ## 0       1      2
-## 1       2      3
-## 2       9      1
-## 3      10      4</code></pre>
+## 1       9      2
+## 2      10      6</code></pre>
 </div>
 <div id="what-happens-in-the-long-run" class="section level1">
 <h1>What Happens in the Long Run</h1>
-<p>If we run the simulation for 1.000.000 weeks and then we colour the islands by the number of weeks visited, a clear structure emerges: larger islands attract the King more often.</p>
+<p>If we run the simulation for <span class="math inline">\(1.000.000\)</span> weeks and then we colour the islands by the number of weeks visited, a clear structure emerges: larger islands attract the King more often.</p>
 <p>Each entry in counts records how many weeks the King spent on each island.</p>
 <pre class="python"><code>num_weels = 1_000_000
 current_position = 0
@@ -83,16 +89,16 @@ unique, counts = np.unique(positions, return_counts=True)
 frame = pd.DataFrame({&quot;island&quot;: unique + 1, &quot;weeks&quot;: counts})
 frame</code></pre>
 <pre><code>##    island   weeks
-## 0       1   18453
-## 1       2   36817
-## 2       3   54430
-## 3       4   72138
-## 4       5   89776
-## 5       6  108619
-## 6       7  127208
-## 7       8  145336
-## 8       9  164260
-## 9      10  182963</code></pre>
+## 0       1   18086
+## 1       2   36433
+## 2       3   54951
+## 3       4   73318
+## 4       5   91145
+## 5       6  108917
+## 6       7  127576
+## 7       8  145640
+## 8       9  163139
+## 9      10  180795</code></pre>
 <pre class="python"><code># --- colors from counts ---
 cmap = plt.cm.viridis
 norm = mpl.colors.Normalize(vmin=float(np.min(counts)), vmax=float(np.max(counts)))
@@ -121,8 +127,8 @@ ax.set_xlim(-max_extent, max_extent)</code></pre>
 ax.axis(&quot;off&quot;)</code></pre>
 <pre><code>## (np.float64(-89.98199256454937), np.float64(89.98199256454937), np.float64(-89.98199256454937), np.float64(89.98199256454937))</code></pre>
 <pre class="python"><code>plt.show()</code></pre>
-<p><img src="{{< blogdown/postref >}}index_files/figure-html/vis-3.png" width="960" />
-Despite making only local, random decisions, the King spends time on each island in proportion to its population. Over longer runs, this proportionality becomes exact.</p>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/vis-3.png" width="960" /></p>
+<p>Despite making only local, random decisions, the King spends time on each island in proportion to its population. Over longer runs, this proportionality becomes exact.</p>
 </div>
 <div id="why-this-works" class="section level1">
 <h1>Why This Works</h1>
