@@ -1,0 +1,190 @@
+---
+title: "Good King Markov and his island kingdom"
+author: "Emanuel Soda"
+date: "2025-12-22"
+slug: "king-markov-and-his-island-kingdom"
+categories: []
+tags: []
+---
+
+```{python import, include=FALSE}
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib.patches import Circle
+import matplotlib as mpl
+```
+
+# Introduction
+
+Many problems in statistics and data science share the same bottleneck: *we know the shape of a distribution we care about, but we cannot sample from it directly*. The distribution may be known only up to a constant, live in a high-dimensional space, or arise implicitly from a complex model. This is exactly the setting in which Markov Chain Monte Carlo (**MCMC**) methods are used.
+
+The central idea behind MCMC is deceptively simple. Instead of drawing independent samples, we construct a random process that moves locally through a space of possible states. If the rules governing these moves are chosen carefully, the long-run fraction of time spent in each state matches the distribution we want. Global correctness emerges from local randomness.
+
+To make this intuition concrete, it helps to forget equations for a moment and think in terms of a story. What follows is a parable about an island kingdom, a reluctant planner, and a strangely effective travel rule. By the end, the logic of MCMC, and in particular the Metropolis algorithm, should feel natural rather than mysterious.
+
+The Island Kingdom
+
+Good King Markov ruled an unusual realm: an archipelago of ten islands arranged in a perfect ring. Each island was connected only to its two immediate neighbours. Crossing the open water through the middle of the ring was forbidden. The King, like many of his subjects, believed sea monsters lived there.
+
+The islands were not equal. Island 1 was the smallest. Island 2 had roughly twice the population. Island 3 had three times as many people as island 1, and so on, up to island 10, which was ten times as populous as the smallest. The numbering of the islands directly encoded their relative population sizes.
+
+The King had an obligation to his people. He was required to visit each island regularly, and everyone agreed on a fair rule: the King should visit islands in proportion to their population. Island 10 should see him ten times as often as island 1.
+
+There was, however, a problem. King Markov hated schedules. He refused to plan his travels in advance or keep records of past visits. He wanted a rule he could follow week by week, using only local information, that would nonetheless guarantee fairness in the long run.
+
+```{python Island, echo=FALSE}
+n = 10
+base_radius = 1
+gap = 3
+pad = 0
+label_offset = 0.5  
+
+# --- radii ---
+radii = base_radius * (np.sqrt(2) ** np.arange(n))
+
+# --- geometry ---
+angles = np.linspace(0, 2*np.pi, n, endpoint=False)
+sin_term = 2 * np.sin(np.pi / n)
+
+adj_sums = [radii[i] + radii[i+1] for i in range(n-1)]
+adj_sums.append(radii[-1] + radii[0])
+required_dist = max(adj_sums) + gap
+
+ring_radius = required_dist / sin_term
+
+centers = np.c_[ring_radius * np.cos(angles),
+                ring_radius * np.sin(angles)]
+
+# --- plot ---
+fig, ax = plt.subplots(figsize=(10, 10))
+for i, ((x, y), r) in enumerate(zip(centers, radii), start=1):
+    ax.add_patch(Circle((x, y), r, fill=False, linewidth=2))
+    # unit vector pointing to the right from the circle center
+    ux, uy = 1.0, 0.0
+    # label position: just outside the circle on its right
+    lx = x + r + label_offset
+    ly = y
+    ax.text(lx, ly, str(i), ha="left", va="center", fontsize=20)
+    
+max_extent = ring_radius + radii.max() + pad
+ax.set_xlim(-max_extent, max_extent)
+ax.set_ylim(-max_extent, max_extent)
+ax.set_aspect("equal")
+ax.axis("off")
+plt.show()
+```
+
+# The Constraint
+
+Two constraints defined the problem. First, the King could only move to neighbouring islands. Any solution requiring jumps across the archipelago was unacceptable.
+
+Second, the rule had to be memoryless. The King would not track how often he had visited each island in the past. Each week’s decision had to depend only on where he was now and what lay next to him.
+
+Rephrased in modern terms, the King needed a Markov process whose long-run behaviour matched a desired target distribution.
+
+# Mr Metropolis’ Proposal
+
+Each week, the King does the following: 1. He flips a fair coin. Heads means he considers moving clockwise. Tails means counterclockwise. The nominated destination is the proposal island. 2. He compares populations using tokens. He counts seashells equal to the population of the proposal island, and stones equal to the population of his current island. 3. He decides whether to move. • If there are more shells than stones, he always moves. • If there are fewer shells than stones, he discards a number of stones equal to the number of shells, mixes shells and stones in a bag, and draws one at random. • If the object drawn is a shell, he moves. Otherwise, he stays put for another week.
+
+No global planning. No bookkeeping. Just a local rule applied repeatedly.
+
+Simulating the King’s Travels
+
+Let us simulate the King’s movements over 10 weeks, starting from island 0
+
+```{python Simulation, echo=TRUE}
+num_weels = 10
+positions = np.zeros(num_weels, dtype=int)
+current_position = 0
+def simulate(num_weels, current_position, positions):
+    for i in range(0, num_weels):
+        positions[i] = current_position
+        proposal = current_position + np.random.choice([-1, 1])
+        if proposal < 0:
+            proposal = 9
+        
+        elif proposal > 9:
+            proposal = 0
+        prob_move = (proposal + 1) / (current_position + 1)
+        
+        if np.random.rand() < prob_move:
+            current_position = proposal
+    return positions
+
+positions = simulate(num_weels, current_position, positions)
+unique, counts = np.unique(positions, return_counts=True)
+frame = pd.DataFrame({"island": unique + 1, "weeks": counts})
+frame
+```
+
+# What Happens in the Long Run
+
+If we run the simulation for 1.000.000 weeks and then we colour the islands by the number of weeks visited, a clear structure emerges: larger islands attract the King more often.
+
+Each entry in counts records how many weeks the King spent on each island.
+
+```{python Long simulation, echo=TRUE}
+num_weels = 1_000_000
+current_position = 0
+positions = np.zeros(num_weels, dtype=int)
+positions = simulate(num_weels, current_position, positions)
+unique, counts = np.unique(positions, return_counts=True)
+frame = pd.DataFrame({"island": unique + 1, "weeks": counts})
+frame
+```
+
+```{python vis, echo=TRUE}
+# --- colors from counts ---
+cmap = plt.cm.viridis
+norm = mpl.colors.Normalize(vmin=float(np.min(counts)), vmax=float(np.max(counts)))
+# --- plot ---
+fig, ax = plt.subplots(figsize=(10, 10))
+for i, ((x, y), r, c) in enumerate(zip(centers, radii, counts), start=1):
+    ax.add_patch(Circle((x, y), r, facecolor=cmap(norm(c)), edgecolor="black", linewidth=2, alpha=0.85))
+
+    # label just outside on the right
+    lx = x + r + label_offset
+    ly = y
+    ax.text(lx, ly, str(i), ha="left", va="center", fontsize=12)
+
+# colorbar
+sm = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
+sm.set_array([])
+cbar = fig.colorbar(sm, ax=ax, fraction=0.046, pad=0.04)
+cbar.set_label("Weeks spent on island")
+
+max_extent = ring_radius + radii.max() + pad
+ax.set_xlim(-max_extent, max_extent)
+ax.set_ylim(-max_extent, max_extent)
+ax.set_aspect("equal")
+ax.axis("off")
+
+plt.show()
+```
+
+Despite making only local, random decisions, the King spends time on each island in proportion to its population. Over longer runs, this proportionality becomes exact.
+
+# Why This Works
+
+The rule proposed by Mr Metropolis enforces a balance condition. For every pair of neighbouring islands, the rate at which the King moves from island A to island B is matched by the rate at which he moves from B to A, once population size is taken into account.
+
+In modern language, the King’s travels form a Markov chain whose stationary distribution is proportional to island population. The acceptance rule ensures this property without ever requiring the King to know the full distribution explicitly.
+
+This is the essence of the Metropolis algorithm. It constructs correct global behaviour using only local comparisons and randomisation.
+
+# The Bigger Picture
+
+The island kingdom is a toy example, but the logic scales. Replace islands with parameter values, population sizes with unnormalised probabilities, and the King’s walk with a trajectory through a high-dimensional space. The same idea allows us to sample from posterior distributions in Bayesian inference, energy landscapes in physics, and complex models in machine learning.
+
+MCMC does not eliminate difficulty. It replaces intractable sampling with controlled randomness. The price we pay is correlation between samples. The reward is access to distributions we could not otherwise touch.
+
+# Closing Thought
+
+At first glance, King Markov’s journey looks chaotic. Some weeks he moves, some weeks he stays. Sometimes he returns to the same island again and again, while others are ignored for long stretches. If you were to watch him for a short time, his behaviour would seem arbitrary, even unfair.
+
+But randomness is deceptive. What appears disordered at the local scale can be deeply structured when viewed over time. The King’s rule contains no memory, no foresight, and no grand plan, yet it produces balance. The fairness emerges not in any single step, but in the accumulation of many imperfect ones.
+
+This is the quiet lesson of MCMC, and perhaps of life more broadly. We often want certainty, schedules, and guarantees. In reality, progress is frequently stochastic. You take small steps based on what is immediately in front of you, make decisions with incomplete information, and accept that some moves will be rejected. The path looks noisy up close.
+
+Trusting the process does not mean believing outcomes are random. It means understanding that order can arise from uncertainty, that consistency matters more than control, and that long-term structure can emerge from short-term unpredictability. Life may feel like a random walk, but if the rules you follow are sound, you are sampling from something meaningful all along.
