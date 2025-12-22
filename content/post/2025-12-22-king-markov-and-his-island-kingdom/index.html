@@ -14,7 +14,9 @@ tags: []
 <p>Many problems in statistics and data science share the same bottleneck: <em>we know the shape of a distribution we care about, but we cannot sample from it directly</em>. The distribution may be known only up to a constant, live in a high-dimensional space, or arise implicitly from a complex model. This is exactly the setting in which Markov Chain Monte Carlo (<strong>MCMC</strong>) methods are used.</p>
 <p>The central idea behind MCMC is deceptively simple. Instead of drawing independent samples, we construct a random process that moves locally through a space of possible states. If the rules governing these moves are chosen carefully, the long-run fraction of time spent in each state matches the distribution we want. Global correctness emerges from local randomness.</p>
 <p>To make this intuition concrete, it helps to forget equations for a moment and think in terms of a story. What follows is a parable about an island kingdom, a reluctant planner, and a strangely effective travel rule. By the end, the logic of MCMC, and in particular the <strong><em>Metropolis algorithm</em></strong>, should feel natural rather than mysterious.</p>
-<p>The Island Kingdom</p>
+</div>
+<div id="the-island-kingdom" class="section level1">
+<h1>The Island Kingdom</h1>
 <blockquote>
 <p>Good King Markov ruled an unusual realm: an archipelago of ten islands arranged in a perfect ring. Each island was connected only to its two immediate neighbours. Crossing the open water through the middle of the ring was forbidden. The King, like many of his subjects, believed sea monsters lived there.</p>
 <p>The islands were not equal. Island 1 was the smallest. Island 2 had roughly twice the population. Island 3 had three times as many people as island 1, and so on, up to island 10, which was ten times as populous as the smallest. The numbering of the islands directly encoded their relative population sizes.</p>
@@ -49,7 +51,7 @@ tags: []
 </div>
 <div id="simulating-the-kings-travels" class="section level1">
 <h1>Simulating the King’s Travels</h1>
-<p>Let us simulate the King’s movements over 10 weeks, starting from island 1</p>
+<p>Let us simulate the King’s movements over <span class="math inline">\(10\)</span> weeks, starting from island <span class="math inline">\(1\)</span></p>
 <pre class="python"><code>num_weels = 10
 positions = np.zeros(num_weels, dtype=int)
 current_position = 0
@@ -74,8 +76,10 @@ frame = pd.DataFrame({&quot;island&quot;: unique + 1, &quot;weeks&quot;: counts}
 frame</code></pre>
 <pre><code>##    island  weeks
 ## 0       1      2
-## 1       9      2
-## 2      10      6</code></pre>
+## 1       2      2
+## 2       3      1
+## 3       9      2
+## 4      10      3</code></pre>
 </div>
 <div id="what-happens-in-the-long-run" class="section level1">
 <h1>What Happens in the Long Run</h1>
@@ -89,16 +93,16 @@ unique, counts = np.unique(positions, return_counts=True)
 frame = pd.DataFrame({&quot;island&quot;: unique + 1, &quot;weeks&quot;: counts})
 frame</code></pre>
 <pre><code>##    island   weeks
-## 0       1   18086
-## 1       2   36433
-## 2       3   54951
-## 3       4   73318
-## 4       5   91145
-## 5       6  108917
-## 6       7  127576
-## 7       8  145640
-## 8       9  163139
-## 9      10  180795</code></pre>
+## 0       1   18106
+## 1       2   35823
+## 2       3   53812
+## 3       4   72027
+## 4       5   90178
+## 5       6  109112
+## 6       7  127684
+## 7       8  145911
+## 8       9  164143
+## 9      10  183204</code></pre>
 <pre class="python"><code># --- colors from counts ---
 cmap = plt.cm.viridis
 norm = mpl.colors.Normalize(vmin=float(np.min(counts)), vmax=float(np.max(counts)))
@@ -128,7 +132,21 @@ ax.axis(&quot;off&quot;)</code></pre>
 <pre><code>## (np.float64(-89.98199256454937), np.float64(89.98199256454937), np.float64(-89.98199256454937), np.float64(89.98199256454937))</code></pre>
 <pre class="python"><code>plt.show()</code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/vis-3.png" width="960" /></p>
-<p>Despite making only local, random decisions, the King spends time on each island in proportion to its population. Over longer runs, this proportionality becomes exact.</p>
+<pre class="python"><code>max_week = 1000
+df = pd.DataFrame({&quot;island&quot;: positions[0:max_week] + 1, &quot;weeks&quot;: range(max_week)})
+plt.figure()
+plt.step(df[&quot;weeks&quot;], df[&quot;island&quot;], where=&quot;post&quot;)
+plt.xlabel(&quot;Weeks&quot;)
+plt.ylabel(&quot;Island&quot;)
+
+# one tick per island
+islands = sorted(df[&quot;island&quot;].unique())
+plt.yticks(islands)</code></pre>
+<pre><code>## ([&lt;matplotlib.axis.YTick object at 0x150ad66b0&gt;, &lt;matplotlib.axis.YTick object at 0x150ad5840&gt;, &lt;matplotlib.axis.YTick object at 0x150af3130&gt;, &lt;matplotlib.axis.YTick object at 0x150d11a80&gt;, &lt;matplotlib.axis.YTick object at 0x150d10dc0&gt;, &lt;matplotlib.axis.YTick object at 0x150af2bc0&gt;, &lt;matplotlib.axis.YTick object at 0x150d10e20&gt;, &lt;matplotlib.axis.YTick object at 0x150d12d10&gt;, &lt;matplotlib.axis.YTick object at 0x150d13970&gt;, &lt;matplotlib.axis.YTick object at 0x150d34610&gt;], [Text(0, 1, &#39;1&#39;), Text(0, 2, &#39;2&#39;), Text(0, 3, &#39;3&#39;), Text(0, 4, &#39;4&#39;), Text(0, 5, &#39;5&#39;), Text(0, 6, &#39;6&#39;), Text(0, 7, &#39;7&#39;), Text(0, 8, &#39;8&#39;), Text(0, 9, &#39;9&#39;), Text(0, 10, &#39;10&#39;)])</code></pre>
+<pre class="python"><code>plt.title(&quot;Island visited over time&quot;)
+plt.show()</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-1-5.png" width="672" />
+Despite making only local, random decisions, the <strong><em>King spends time on each island in proportion to its population</em></strong>. Over longer runs, this proportionality becomes exact.</p>
 </div>
 <div id="why-this-works" class="section level1">
 <h1>Why This Works</h1>

@@ -23,7 +23,7 @@ The central idea behind MCMC is deceptively simple. Instead of drawing independe
 
 To make this intuition concrete, it helps to forget equations for a moment and think in terms of a story. What follows is a parable about an island kingdom, a reluctant planner, and a strangely effective travel rule. By the end, the logic of MCMC, and in particular the ***Metropolis algorithm***, should feel natural rather than mysterious.
 
-The Island Kingdom
+# The Island Kingdom
 
 > Good King Markov ruled an unusual realm: an archipelago of ten islands arranged in a perfect ring. Each island was connected only to its two immediate neighbours. Crossing the open water through the middle of the ring was forbidden. The King, like many of his subjects, believed sea monsters lived there.
 >
@@ -103,7 +103,7 @@ No global planning. No bookkeeping. Just a local rule applied repeatedly.
 
 # Simulating the King’s Travels
 
-Let us simulate the King’s movements over 10 weeks, starting from island 1
+Let us simulate the King’s movements over $10$ weeks, starting from island $1$
 
 ```{python Simulation, echo=TRUE}
 num_weels = 10
@@ -175,7 +175,24 @@ ax.axis("off")
 plt.show()
 ```
 
-Despite making only local, random decisions, the King spends time on each island in proportion to its population. Over longer runs, this proportionality becomes exact.
+```{python}
+max_week = 1000
+df = pd.DataFrame({"island": positions[0:max_week] + 1, "weeks": range(max_week)})
+plt.figure()
+plt.step(df["weeks"], df["island"], where="post")
+plt.xlabel("Weeks")
+plt.ylabel("Island")
+
+# one tick per island
+islands = sorted(df["island"].unique())
+plt.yticks(islands)
+
+plt.title("Island visited over time")
+plt.show()
+
+
+```
+Despite making only local, random decisions, the ***King spends time on each island in proportion to its population***. Over longer runs, this proportionality becomes exact.
 
 # Why This Works
 
