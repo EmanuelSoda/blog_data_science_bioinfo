@@ -1,0 +1,216 @@
+---
+title: "Moving Mountains: Optimal Transport from Monge to Single Cells"
+author: "Emanuel Soda"
+date: "2026-06-16"
+slug: "optimal-transport-from-monge-to-single-cells"
+categories: []
+tags:
+- optimal transport
+- single cell
+- sinkhorn
+editor_options:
+  chunk_output_type: console
+---
+
+
+
+<div id="introduction" class="section level1">
+<h1>Introduction</h1>
+<p>A surprising number of questions in data science reduce to the same primitive operation: <em>comparing two distributions</em>. How different is this batch from that one? How far has a population drifted between two measurements? Which points in one cloud correspond to which points in another?</p>
+<p>The obvious tools are often the wrong ones. If I hand you two histograms and ask how far apart they are, you might reach for something like the difference in their means, or a bin-by-bin comparison. But these measures are blind to geometry. Two distributions can share the same mean and overlap in not a single bin, yet one might be a small nudge away from the other while another is genuinely far. We need a notion of distance that knows how much <em>work</em> it takes to turn one distribution into the other.</p>
+<p>That notion is <strong>optimal transport</strong> (OT). It is one of those ideas that looks like a niche piece of applied mathematics until you notice it quietly sitting underneath problems in economics, image processing, machine learning, and — the example we will build toward here — the study of how single cells change over time.</p>
+<p>As with the <a href="/2025/12/22/king-markov-and-his-island-kingdom/">story of King Markov</a>, it helps to forget the equations for a moment and start with a picture.</p>
+</div>
+<div id="a-parable-of-earth-and-effort" class="section level1">
+<h1>A Parable of Earth and Effort</h1>
+<blockquote>
+<p>In 1781, the French mathematician Gaspard Monge was thinking about dirt. Specifically, he was thinking about military fortifications: how to move a pile of excavated soil and use it to fill a trench, while doing the least possible work.</p>
+<p>Imagine the soil as a collection of small heaps scattered along the ground, and the trench as a collection of holes that need filling. Every shovelful carries a cost: the <em>amount</em> of earth times the <em>distance</em> you have to carry it. Moving a heavy load a long way is expensive; nudging a little soil into a nearby hole is cheap.</p>
+<p>Monge’s question was deceptively simple. Among all the possible ways of assigning earth to holes — and there are unimaginably many — which assignment is the <em>cheapest</em>?</p>
+</blockquote>
+<p>This is the <strong>transport problem</strong>. The heaps are a source distribution, the holes a target distribution, and a <em>transport plan</em> is any scheme that moves all the earth into all the holes. The cost of a plan is the total work it requires, and the optimal plan is the one minimizing that work.</p>
+<p>Two pieces are doing all the work in this picture, and they generalize far beyond dirt:</p>
+<ol style="list-style-type: decimal">
+<li>A <strong>cost</strong> of moving a unit of mass from one location to another. For Monge it was distance; in general it can be anything we choose.</li>
+<li>The constraint that <strong>all the source mass must be moved, and all the target holes must be filled</strong> — nothing created, nothing destroyed.</li>
+</ol>
+<p>Everything else is bookkeeping.</p>
+</div>
+<div id="from-monge-to-kantorovich" class="section level1">
+<h1>From Monge to Kantorovich</h1>
+<p>Monge insisted that each grain of soil go to exactly one destination — a rigid, all-or-nothing <em>map</em> from sources to targets. That constraint makes the problem mathematically awkward: sometimes no such map even exists (try splitting one heap into two holes), and the optimum can fail to be well-defined.</p>
+<p>In the 1940s Leonid Kantorovich relaxed the rule, and in doing so turned a brittle problem into a beautiful one. His insight: <em>we should be allowed to split mass.</em> A single heap can send half its soil to one hole and half to another. Instead of a map, a transport plan becomes a <strong>coupling</strong> — a table <span class="math inline">\(P\)</span> where the entry <span class="math inline">\(P_{ij}\)</span> records how much mass travels from source <span class="math inline">\(i\)</span> to target <span class="math inline">\(j\)</span>.</p>
+<p>If our source distribution puts mass <span class="math inline">\(a_i\)</span> on each of <span class="math inline">\(n\)</span> locations and the target puts mass <span class="math inline">\(b_j\)</span> on each of <span class="math inline">\(m\)</span> locations, then a valid plan is any non-negative matrix <span class="math inline">\(P\)</span> whose rows sum to the source and whose columns sum to the target:</p>
+<p><span class="math display">\[
+P_{ij} \geq 0, \qquad \sum_j P_{ij} = a_i, \qquad \sum_i P_{ij} = b_j.
+\]</span></p>
+<p>The first constraint says everything leaving source <span class="math inline">\(i\)</span> adds up to the mass that was there. The second says everything arriving at target <span class="math inline">\(j\)</span> fills exactly that hole. Given a cost matrix <span class="math inline">\(C\)</span>, where <span class="math inline">\(C_{ij}\)</span> is the price of moving one unit from <span class="math inline">\(i\)</span> to <span class="math inline">\(j\)</span>, the total cost of a plan is</p>
+<p><span class="math display">\[
+\langle P, C \rangle = \sum_{i,j} P_{ij}\, C_{ij}.
+\]</span></p>
+<p>Optimal transport is then the search for the cheapest valid plan:</p>
+<p><span class="math display">\[
+W(a, b) = \min_{P} \ \langle P, C \rangle \quad \text{subject to the constraints above.}
+\]</span></p>
+<p>When the cost is squared distance, the square root of this minimum is the <strong>Wasserstein distance</strong> — the “amount of work” metric we were missing at the start. It is a genuine distance between distributions, and crucially it respects geometry: distributions that are close in space are close in Wasserstein distance, even if they do not overlap at all.</p>
+<p>This is a <em>linear program</em>: a linear objective with linear constraints. It is solvable exactly, but for the sizes that show up in modern data — thousands or millions of points — the exact solvers are slow, and the solution is a hard, sparse plan that is annoying to differentiate. We will fix both problems with one idea.</p>
+</div>
+<div id="making-it-computable-entropic-regularization-and-sinkhorn" class="section level1">
+<h1>Making It Computable: Entropic Regularization and Sinkhorn</h1>
+<p>The trick, popularized by Marco Cuturi in 2013, is to add a small penalty that rewards plans for being <em>smooth</em> rather than sharp. We subtract the entropy of the plan from the objective:</p>
+<p><span class="math display">\[
+W_\varepsilon(a, b) = \min_{P} \ \langle P, C \rangle - \varepsilon \, H(P),
+\qquad H(P) = -\sum_{i,j} P_{ij}\big(\log P_{ij} - 1\big).
+\]</span></p>
+<p>The regularization strength <span class="math inline">\(\varepsilon\)</span> controls a trade-off. Large <span class="math inline">\(\varepsilon\)</span> gives a blurry plan that spreads mass generously; as <span class="math inline">\(\varepsilon \to 0\)</span> we recover the sharp, exact optimal transport. In exchange for a little blur we get something remarkable: the solution has a closed form,</p>
+<p><span class="math display">\[
+P = \operatorname{diag}(u)\, K \, \operatorname{diag}(v), \qquad K_{ij} = e^{-C_{ij}/\varepsilon},
+\]</span></p>
+<p>and the unknown scaling vectors <span class="math inline">\(u\)</span> and <span class="math inline">\(v\)</span> can be found by a startlingly simple loop. We alternate between rescaling the rows so they match the source, and rescaling the columns so they match the target. That is the entire <strong>Sinkhorn algorithm</strong>:</p>
+<pre class="python"><code>def sinkhorn(a, b, C, reg=0.05, n_iter=2000):
+    &quot;&quot;&quot;Entropic optimal transport between distributions a and b.
+
+    a, b : 1D arrays of masses (each sums to 1)
+    C    : cost matrix, C[i, j] = cost of moving mass from i to j
+    reg  : entropic regularization strength (epsilon)
+    &quot;&quot;&quot;
+    K = np.exp(-C / reg)          # Gibbs kernel
+    u = np.ones_like(a)
+    v = np.ones_like(b)
+    for _ in range(n_iter):
+        u = a / (K @ v)           # rescale rows to match the source
+        v = b / (K.T @ u)         # rescale columns to match the target
+    return u[:, None] * K * v[None, :]</code></pre>
+<p>That is the whole solver. No linear-programming library, no constraint matrix — just a kernel and a few matrix-vector products, repeated until the marginals settle. It is also fully differentiable, which is why it has become a workhorse inside modern machine-learning pipelines.</p>
+<p>Let us watch it work on Monge’s original picture. We place a pile of “earth” on the left of a line and a trench of “holes” on the right, with squared distance as the cost.</p>
+<pre class="python"><code>x = np.arange(10)
+a = np.exp(-0.5 * ((x - 2) / 1.0) ** 2); a /= a.sum()   # source piles
+b = np.exp(-0.5 * ((x - 7) / 1.5) ** 2); b /= b.sum()   # target holes
+
+C = (x[:, None] - x[None, :]) ** 2      # squared-distance cost
+C = C / C.max()                         # normalise so reg is interpretable
+
+P = sinkhorn(a, b, C, reg=0.01)
+
+print(&quot;max row-marginal error:&quot;, np.abs(P.sum(1) - a).max())</code></pre>
+<pre><code>## max row-marginal error: 2.7755575615628914e-17</code></pre>
+<pre class="python"><code>print(&quot;transport cost &lt;P, C&gt; :&quot;, round(float((P * C).sum()), 4))</code></pre>
+<pre><code>## transport cost &lt;P, C&gt; : 0.2953</code></pre>
+<p>The plan respects both marginals almost exactly. Visualising the source and target, the cost matrix, and the resulting plan makes the logic concrete:</p>
+<pre class="python"><code>fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+
+axes[0].bar(x - 0.15, a, width=0.3, label=&quot;source (piles)&quot;)
+axes[0].bar(x + 0.15, b, width=0.3, label=&quot;target (holes)&quot;)
+axes[0].set_title(&quot;Two distributions on a line&quot;)
+axes[0].set_xlabel(&quot;position&quot;); axes[0].legend()
+
+im = axes[1].imshow(C, origin=&quot;lower&quot;, cmap=&quot;magma&quot;)
+axes[1].set_title(&quot;Cost matrix  $C_{ij}$&quot;)
+axes[1].set_xlabel(&quot;target j&quot;); axes[1].set_ylabel(&quot;source i&quot;)
+fig.colorbar(im, ax=axes[1], fraction=0.046)</code></pre>
+<pre><code>## &lt;matplotlib.colorbar.Colorbar object at 0x7f9809046f10&gt;</code></pre>
+<pre class="python"><code>im2 = axes[2].imshow(P, origin=&quot;lower&quot;, cmap=&quot;viridis&quot;)
+axes[2].set_title(&quot;Optimal transport plan  $P_{ij}$&quot;)
+axes[2].set_xlabel(&quot;target j&quot;); axes[2].set_ylabel(&quot;source i&quot;)
+fig.colorbar(im2, ax=axes[2], fraction=0.046)</code></pre>
+<pre><code>## &lt;matplotlib.colorbar.Colorbar object at 0x7f9808e16390&gt;</code></pre>
+<pre class="python"><code>fig.tight_layout()
+plt.show()</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/toy_vis-1.png" alt="" width="1440" /></p>
+<p>The bright diagonal band in the transport plan tells the story: mass on the left is carried rightward to the nearest available holes, never further than it has to go. That is optimal transport in one line of intuition — <em>move as little as possible, as short a distance as possible.</em></p>
+</div>
+<div id="why-single-cells-need-optimal-transport" class="section level1">
+<h1>Why Single Cells Need Optimal Transport</h1>
+<p>Now for the payoff. Single-cell RNA sequencing measures the gene-expression profile of individual cells — each cell becomes a point in a very high-dimensional space, one axis per gene (we met the perils of that space in <a href="/2023/05/28/the-curse-of-dimensionality/">the curse of dimensionality</a>). Suppose we want to study a developmental process: stem cells maturing into specialized cell types, say, or a population responding to a drug over several days.</p>
+<p>Here is the cruel catch of the technology. <strong>Measuring a cell destroys it.</strong> To read a cell’s transcriptome we have to break it open. So when we sample the population at day 0 and again at day 4, we are not following the <em>same</em> cells through time — we are looking at two entirely different snapshots, with no labels telling us which day-4 cell descended from which day-0 cell. The correspondence we most want is exactly the thing the experiment cannot give us.</p>
+<p>This is precisely a transport problem. We have a distribution of cells at time <span class="math inline">\(t_0\)</span> and another at time <span class="math inline">\(t_1\)</span>, and we want the most plausible coupling between them. If cells tend to change their expression gradually — a reasonable biological assumption — then the <em>cheapest</em> coupling under a distance cost is a good guess at the true ancestor–descendant relationships. This is the core idea behind <strong>Waddington-OT</strong> (Schiebinger et al., <em>Cell</em>, 2019), which reconstructs developmental trajectories by chaining optimal-transport plans between consecutive time points.</p>
+</div>
+<div id="a-toy-bifurcation" class="section level1">
+<h1>A Toy Bifurcation</h1>
+<p>Let us simulate a clean version of this. At <span class="math inline">\(t_0\)</span> we have a population of progenitor cells, clustered together but with a little spread along one axis of expression. By <span class="math inline">\(t_1\)</span> the population has <strong>bifurcated</strong> into two distinct lineages — an upper fate and a lower fate. Because we control the simulation, we know the ground truth; the algorithm does not.</p>
+<pre class="python"><code>n0 = n1 = 200
+half = n1 // 2
+
+# t0: progenitors near x = 0, with spread along the y (fate) axis
+X0 = np.column_stack([rng.normal(0, 0.3, n0),
+                      rng.normal(0, 1.2, n0)])
+
+# t1: two mature lineages at x ~ 4, separated along y
+upper = np.column_stack([rng.normal(4, 0.3, half),
+                         rng.normal(2.5, 0.4, half)])
+lower = np.column_stack([rng.normal(4, 0.3, n1 - half),
+                         rng.normal(-2.5, 0.4, n1 - half)])
+X1 = np.vstack([upper, lower])
+
+fate_upper = np.r_[np.ones(half), np.zeros(n1 - half)]   # ground-truth label</code></pre>
+<pre class="python"><code>fig, ax = plt.subplots(figsize=(7, 6))
+ax.scatter(X0[:, 0], X0[:, 1], s=20, alpha=0.6, label=&quot;$t_0$ progenitors&quot;)
+ax.scatter(X1[:, 0], X1[:, 1], s=20, alpha=0.6, label=&quot;$t_1$ lineages&quot;)
+ax.set_xlabel(&quot;expression axis 1&quot;); ax.set_ylabel(&quot;expression axis 2&quot;)
+ax.set_title(&quot;Two snapshots of a bifurcating population&quot;)
+ax.legend()
+plt.show()</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/sim_vis-3.png" alt="" width="672" /></p>
+<p>We never observe an arrow from any progenitor to any descendant. All we have are the two clouds. Now we ask optimal transport for the cheapest way to move the <span class="math inline">\(t_0\)</span> cloud onto the <span class="math inline">\(t_1\)</span> cloud, using squared distance in expression space as the cost.</p>
+<pre class="python"><code>C = np.sum((X0[:, None, :] - X1[None, :, :]) ** 2, axis=2)  # pairwise sq. dist.
+C = C / C.max()
+
+a = np.full(n0, 1 / n0)
+b = np.full(n1, 1 / n1)
+
+P = sinkhorn(a, b, C, reg=0.02)
+print(&quot;Wasserstein-type cost &lt;P, C&gt;:&quot;, round(float((P * C).sum()), 4))</code></pre>
+<pre><code>## Wasserstein-type cost &lt;P, C&gt;: 0.2367</code></pre>
+<p>The plan <span class="math inline">\(P\)</span> couples ancestors to descendants. We can draw it directly: a faint line from each progenitor to each descendant it sends mass to, with opacity proportional to how much.</p>
+<pre class="python"><code>fig, ax = plt.subplots(figsize=(7, 6))
+thr = P.max() * 0.05
+for i in range(n0):
+    for j in range(n1):
+        if P[i, j] &gt; thr:
+            ax.plot([X0[i, 0], X1[j, 0]], [X0[i, 1], X1[j, 1]],
+                    color=&quot;gray&quot;, lw=0.4, alpha=min(1.0, P[i, j] / P.max()))
+ax.scatter(X0[:, 0], X0[:, 1], s=15, label=&quot;$t_0$&quot;)
+ax.scatter(X1[:, 0], X1[:, 1], s=15, label=&quot;$t_1$&quot;)
+ax.set_xlabel(&quot;expression axis 1&quot;); ax.set_ylabel(&quot;expression axis 2&quot;)
+ax.set_title(&quot;The optimal coupling between time points&quot;)
+ax.legend()
+plt.show()</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/coupling_vis-5.png" alt="" width="672" /></p>
+<p>Notice that the plan does not connect progenitors to <em>both</em> lineages indiscriminately. Cells sitting in the upper part of the <span class="math inline">\(t_0\)</span> cloud send most of their mass upward; cells in the lower part send it downward. The geometry of the early population already encodes a bias toward one fate or the other, and optimal transport reads it out for free.</p>
+</div>
+<div id="predicting-fate-before-it-happens" class="section level1">
+<h1>Predicting Fate Before It Happens</h1>
+<p>We can make that last observation quantitative. For each progenitor <span class="math inline">\(i\)</span>, the row <span class="math inline">\(P_{i,\cdot}\)</span> — once normalized — is a probability distribution over its possible descendants. Weighting by the (known) fate labels of the <span class="math inline">\(t_1\)</span> cells gives each progenitor a predicted probability of becoming an <em>upper-lineage</em> cell:</p>
+<pre class="python"><code>cond = P / P.sum(axis=1, keepdims=True)   # P(descendant j | ancestor i)
+pred_upper = cond @ fate_upper            # expected fate per progenitor
+
+corr = np.corrcoef(X0[:, 1], pred_upper)[0, 1]
+print(&quot;correlation between early position and predicted fate:&quot;, round(corr, 3))</code></pre>
+<pre><code>## correlation between early position and predicted fate: 0.855</code></pre>
+<pre class="python"><code>fig, ax = plt.subplots(figsize=(7, 6))
+sc = ax.scatter(X0[:, 0], X0[:, 1], c=pred_upper, cmap=&quot;coolwarm&quot;,
+                s=30, vmin=0, vmax=1)
+fig.colorbar(sc, ax=ax, label=&quot;predicted P(upper lineage)&quot;)</code></pre>
+<pre><code>## &lt;matplotlib.colorbar.Colorbar object at 0x7f97fc6f2f10&gt;</code></pre>
+<pre class="python"><code>ax.set_xlabel(&quot;expression axis 1&quot;); ax.set_ylabel(&quot;expression axis 2&quot;)
+ax.set_title(&quot;Each progenitor coloured by its inferred fate&quot;)
+plt.show()</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/fate_vis-7.png" alt="" width="672" /></p>
+<p>The colour gradient runs cleanly along the fate axis: progenitors near the top are predicted to mature into the upper lineage, those near the bottom into the lower one, and the cells in between are genuinely undecided. We recovered a developmental bias from two unlabeled snapshots, using nothing but geometry and the principle of least effort. No cell was ever tracked; the coupling did the tracking for us.</p>
+</div>
+<div id="the-bigger-picture" class="section level1">
+<h1>The Bigger Picture</h1>
+<p>The bifurcation above is a cartoon, and real applications add important wrinkles — populations grow and die, so the source and target masses do not match (this calls for <em>unbalanced</em> optimal transport), and the cost is usually computed in a reduced space rather than on raw genes. But the skeleton is exactly what we built: define a cost, demand that mass be conserved, and find the cheapest coupling.</p>
+<p>The same skeleton shows up well beyond developmental biology:</p>
+<ul>
+<li><strong>Batch integration.</strong> Two single-cell datasets from different experiments can be aligned by transporting one onto the other, correcting technical differences while preserving biology.</li>
+<li><strong>Domain adaptation.</strong> In machine learning, OT maps a model’s training distribution onto a new test distribution.</li>
+<li><strong>Comparing anything distributional.</strong> Word embeddings, image colour palettes, and probability forecasts have all been compared with Wasserstein distance, precisely because it respects the geometry that simpler metrics ignore.</li>
+</ul>
+</div>
+<div id="closing-thought" class="section level1">
+<h1>Closing Thought</h1>
+<p>Optimal transport began with Monge staring at a pile of dirt, asking the most pragmatic question imaginable: what is the least work I can get away with? Two and a half centuries later, the same question lets us watch cells choose their fate without ever following a single one.</p>
+<p>I find that lineage genuinely moving. The technique never pretends to know the hidden correspondence it cannot see. It simply assumes that change is costly, that nature is frugal, and that the most plausible story is the one requiring the least rearrangement. From that single, almost philosophical assumption, structure emerges — not because we imposed it, but because the geometry was there all along, waiting for someone to ask how much it would cost to move.</p>
+<p>Sometimes the deepest tools are the ones that just refuse to do more work than necessary.</p>
+</div>
